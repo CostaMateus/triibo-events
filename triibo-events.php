@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:          #Triibo_Eventos
- * Description:          Dispara eventos para a Triibo dada certas condições
+ * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
  * Version:              1.0.0
