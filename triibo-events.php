@@ -35,6 +35,9 @@ class Triibo_Events
 	 */
 	protected static $instance = null;
 
+	protected $log;
+	protected $api;
+
 	/**
 	 * Return an instance of this class.
 	 *
@@ -53,13 +56,19 @@ class Triibo_Events
 		{
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
-			add_action( "admin_menu",                    [ $this, "add_submenu_page"     ], 11 );
-			add_action( "triibo_api_service_add_button", [ $this, "add_btn"              ], 11 );
+			add_action( "admin_menu",                       [ $this, "add_submenu_page"    ], 11 );
+			add_action( "triibo_api_service_add_button",    [ $this, "add_btn"             ], 11 );
+
+			add_action( "woocommerce_order_status_changed", [ $this, "order_status_change" ], 10, 4 );
+
+			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
+			$this->api = new Triibo_Api_Node();
 		}
 		else
 		{
 			add_action( "admin_notices", [ $this, "triibo_api_services_missing_notice" ] );
 		}
+
 	}
 
 	/**
@@ -111,6 +120,48 @@ class Triibo_Events
 
 		echo "<p>Triibo Eventos | {$link}</p>";
 	}
+
+
+	/**
+	 * Valid if is a sub-order and sends event for Triibo
+	 */
+	public function order_status_change( $order_id, $old_status, $new_status, $order )
+	{
+		$sub_order = empty( $order->get_meta( "has_sub_order" ) ) ? false : true;
+
+		if ( !$sub_order )
+		{
+			if ( $new_status == "completed" )
+			{
+				$total = $order->get_total();
+				$int   = ( int ) $total;
+				$round = round( $total );
+
+				$greater_than_i = $int   >= 50 ? "TRUE" : "FALSE";
+				$greater_than_r = $round >= 50 ? "TRUE" : "FALSE";
+
+				// Call api NODE
+				$response = $this->api->event( "token", [ "data" ] );
+
+				// Response
+				if ( !$response[ "error" ] )
+				{
+					//
+				}
+			}
+		}
+	}
+
+    /**
+     * Register log
+     *
+     * @param string $data
+     * @return void
+     */
+    public function log( string $data )
+    {
+        $this->log->add( self::DOMAIN, $data );
+    }
 }
 
 add_action( "plugins_loaded", array( "Triibo_Events", "get_instance" ), 222 );
