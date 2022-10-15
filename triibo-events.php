@@ -53,8 +53,6 @@ class Triibo_Events
 		{
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
-			if ( is_admin() ) add_action( "admin_notices", [ $this, "ecfb_missing_notice" ] );
-
 			add_action( "admin_menu",                    [ $this, "add_submenu_page"     ], 11 );
 			add_action( "triibo_api_service_add_button", [ $this, "add_btn"              ], 11 );
 		}
@@ -80,7 +78,7 @@ class Triibo_Events
 	 */
 	public static function plugin_action_links( $links )
     {
-        $url            = esc_url( admin_url( "admin.php?page=wc-settings&tab=checkout&section=" . self::DOMAIN ) );
+        $url            = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
         $text           = __( "Configurações", self::DOMAIN );
 		$plugin_links   = [];
 		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
