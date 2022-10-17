@@ -114,7 +114,7 @@ class Triibo_Events
 
 	public function add_btn()
 	{
-        $url  = esc_url( admin_url( "admin.php?page=" . self::DOMAIN ) );
+        $url  = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
 		$text = __( "Configurações", self::DOMAIN );
 		$link = "<a href='{$url}' >{$text}</a>";
 
