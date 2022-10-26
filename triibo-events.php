@@ -56,13 +56,13 @@ class Triibo_Events
 		{
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
-			add_action( "admin_menu",                       [ $this, "add_submenu_page"    ], 11 );
-			add_action( "triibo_api_service_add_button",    [ $this, "add_btn"             ], 11 );
+			add_action( "admin_menu",                       [ $this, "add_submenu_page"    ], 11    );
+			add_action( "triibo_api_service_add_button",    [ $this, "add_btn"             ], 11    );
 
 			add_action( "woocommerce_order_status_changed", [ $this, "order_status_change" ], 10, 4 );
 
 			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
-			$this->api = new Triibo_Api_Node();
+			$this->api = new Triibo_Api_Gateway();
 		}
 		else
 		{
@@ -134,19 +134,26 @@ class Triibo_Events
 			if ( $new_status == "completed" )
 			{
 				$total = $order->get_total();
-				$int   = ( int ) $total;
-				$round = round( $total );
 
-				$greater_than_i = $int   >= 50 ? "TRUE" : "FALSE";
-				$greater_than_r = $round >= 50 ? "TRUE" : "FALSE";
-
-				// Call api NODE
-				$response = $this->api->event( "token", [ "data" ] );
-
-				// Response
-				if ( !$response[ "error" ] )
+				if ( $total >= 50 )
 				{
-					//
+					$round     = round( $total );
+
+					$user_id   = $order->get_user_id();
+					$user_meta = get_user_meta( $user_id, true );
+
+					if ( isset( $user_meta[ "triiboId_phone" ] ) )
+					{
+						$uid      = reset( $user_meta[ "triiboId_phone" ] );
+						$response = $this->api->credit_points( $uid, $round );
+
+						$this->log( json_encode( $response ) );
+					}
+					else
+					{
+						$order_id = $order->get_order_number();
+						$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+					}
 				}
 			}
 		}
