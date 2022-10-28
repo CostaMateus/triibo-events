@@ -56,10 +56,11 @@ class Triibo_Events
 		{
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
-			add_action( "admin_menu",                       [ $this, "add_submenu_page"    ], 11    );
-			add_action( "triibo_api_service_add_button",    [ $this, "add_btn"             ], 11    );
+			add_action( "admin_menu",                          [ $this, "add_submenu_page"    ], 11    );
+			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
+			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
 
-			add_action( "woocommerce_order_status_changed", [ $this, "order_status_change" ], 10, 4 );
+			add_action( "woocommerce_order_status_changed",    [ $this, "order_status_change" ], 10, 4 );
 
 			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api = new Triibo_Api_Gateway();
@@ -119,6 +120,11 @@ class Triibo_Events
 		$link = "<a href='{$url}' >{$text}</a>";
 
 		echo "<p>Triibo Eventos | {$link}</p>";
+	}
+
+	public function add_info_dependency()
+	{
+		echo "<p> - Triibo Eventos</p>";
 	}
 
 
