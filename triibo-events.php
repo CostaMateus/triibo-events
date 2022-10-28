@@ -133,34 +133,28 @@ class Triibo_Events
 	 */
 	public function order_status_change( $order_id, $old_status, $new_status, $order )
 	{
-		$sub_order = empty( $order->get_meta( "has_sub_order" ) ) ? false : true;
+		$total          = $order->get_total();
 
-		if ( !$sub_order )
+		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
+		$is_processing  = ( $new_status == "processing"  ) ? true : false;
+		$total_gt       = ( $total >= 50                 ) ? true : false;
+
+		if ( $original_order && $is_processing && $total_gt )
 		{
-			if ( $new_status == "completed" )
+			$user_id   = $order->get_user_id();
+			$user_meta = get_user_meta( $user_id, true );
+
+			if ( isset( $user_meta[ "triiboId_phone" ] ) )
 			{
-				$total = $order->get_total();
+				$uid      = reset( $user_meta[ "triiboId_phone" ] );
+				$response = $this->api->credit_points( $uid, round( $total ) );
 
-				if ( $total >= 50 )
-				{
-					$round     = round( $total );
-
-					$user_id   = $order->get_user_id();
-					$user_meta = get_user_meta( $user_id, true );
-
-					if ( isset( $user_meta[ "triiboId_phone" ] ) )
-					{
-						$uid      = reset( $user_meta[ "triiboId_phone" ] );
-						$response = $this->api->credit_points( $uid, $round );
-
-						$this->log( json_encode( $response ) );
-					}
-					else
-					{
-						$order_id = $order->get_order_number();
-						$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
-					}
-				}
+				$this->log( json_encode( $response ) );
+			}
+			else
+			{
+				$order_id = $order->get_order_number();
+				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
 	}
