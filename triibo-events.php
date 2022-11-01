@@ -164,6 +164,7 @@ class Triibo_Events
 	public function order_status_change( $order_id, $old_status, $new_status, $order )
 	{
 		$total          = $order->get_total();
+		$shipp          = $order->get_shipping_total();
 
 		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
 		$is_processing  = ( $new_status == "processing"  ) ? true : false;
@@ -172,14 +173,14 @@ class Triibo_Events
 		if ( $original_order && $is_processing && $total_gt )
 		{
 			$user_id   = $order->get_user_id();
-			$user_meta = get_user_meta( $user_id, true );
+			$triibo_id = get_user_meta( $user_id, "triiboId_phone", true );
 
-			if ( isset( $user_meta[ "triiboId_phone" ] ) )
+			$subtotal  = $total - $shipp;
+
+			if ( !empty( $triibo_id ) )
 			{
-				$uid      = reset( $user_meta[ "triiboId_phone" ] );
-				$response = $this->api->credit_points( $uid, $total );
-				// $response = $this->api->credit_points( $uid, round( $total ) );
-
+				$triibo_id = preg_replace( "/\D/", "", $triibo_id );
+				$response  = $this->api->credit_points( $triibo_id, $total );
 				$this->log( json_encode( $response ) );
 			}
 			else
