@@ -15,7 +15,7 @@
  */
 defined( "ABSPATH" ) || exit;
 
-if ( ! in_array( "woocommerce/woocommerce.php", apply_filters( "active_plugins", get_option( "active_plugins" ) ) ) ) return;
+if ( !in_array( "woocommerce/woocommerce.php", apply_filters( "active_plugins", get_option( "active_plugins" ) ) ) ) return;
 
 class Triibo_Events
 {
@@ -26,6 +26,11 @@ class Triibo_Events
 	 */
 	const VERSION = "1.0.0";
 
+	/**
+	 * Plugin domain.
+	 *
+	 * @var string
+	 */
 	const DOMAIN  = "triibo_events";
 
 	/**
@@ -35,7 +40,18 @@ class Triibo_Events
 	 */
 	protected static $instance = null;
 
+	/**
+	 * WC Logger.
+	 *
+	 * @var wc_get_logger|WC_Logger
+	 */
 	protected $log;
+
+	/**
+	 * Triibo Api Services - Gateway.
+	 *
+	 * @var Triibo_Api_Gateway
+	 */
 	protected $api;
 
 	/**
@@ -50,6 +66,9 @@ class Triibo_Events
 		return self::$instance;
 	}
 
+	/**
+	 * Construct
+	 */
 	private function __construct()
     {
 		if ( class_exists( "Triibo_Api_Services" ) )
@@ -69,7 +88,6 @@ class Triibo_Events
 		{
 			add_action( "admin_notices", [ $this, "triibo_api_services_missing_notice" ] );
 		}
-
 	}
 
 	/**
@@ -96,6 +114,9 @@ class Triibo_Events
 		return array_merge( $plugin_links, $links );
 	}
 
+	/**
+	 * adds 'Eventos' submenu to Triibo Services main menu
+	 */
 	public function add_submenu_page()
 	{
 		add_submenu_page(
@@ -108,11 +129,17 @@ class Triibo_Events
 		);
 	}
 
+	/**
+	 * Template for submenu
+	 */
 	public function display_admin_menu_settings()
 	{
 		include_once dirname( __FILE__ ) . "/templates/admin-page.php";
 	}
 
+	/**
+	 * Link to plugin settings
+	 */
 	public function add_btn()
 	{
         $url  = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
@@ -122,6 +149,9 @@ class Triibo_Events
 		echo "<p>Triibo Eventos | {$link}</p>";
 	}
 
+	/**
+	 * Add this plugin's dependency in the Triibo Api Services settings
+	 */
 	public function add_info_dependency()
 	{
 		echo "<p> - Triibo Eventos</p>";
@@ -147,7 +177,8 @@ class Triibo_Events
 			if ( isset( $user_meta[ "triiboId_phone" ] ) )
 			{
 				$uid      = reset( $user_meta[ "triiboId_phone" ] );
-				$response = $this->api->credit_points( $uid, round( $total ) );
+				$response = $this->api->credit_points( $uid, $total );
+				// $response = $this->api->credit_points( $uid, round( $total ) );
 
 				$this->log( json_encode( $response ) );
 			}
@@ -163,7 +194,6 @@ class Triibo_Events
      * Register log
      *
      * @param string $data
-     * @return void
      */
     public function log( string $data )
     {
