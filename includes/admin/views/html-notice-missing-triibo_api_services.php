@@ -19,7 +19,7 @@ if ( function_exists( "get_plugins" ) )
 <div class="error">
 	<p>
 		<strong>
-			<?php esc_html_e( "#Triibo_Assinatura", Triibo_Events::DOMAIN ); ?>
+			<?php esc_html_e( "#Triibo_Eventos", Triibo_Events::DOMAIN ); ?>
 		</strong>
 		<?php esc_html_e( "depende da última versão do 'Triibo API Services' para funcionar!", Triibo_Events::DOMAIN ); ?>
 	</p>
