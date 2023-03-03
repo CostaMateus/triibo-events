@@ -181,11 +181,28 @@ class Triibo_Events
 			{
 				$triibo_id = preg_replace( "/\D/", "", $triibo_id );
 				$response  = $this->api->credit_points( $triibo_id, $total );
-				$this->log( json_encode( $response ) );
+
+				if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
+				{
+					$movement_id = $response[ "data" ][ "movementID" ];
+					$note        = "Créditos adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
+				}
+				elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
+				{
+					$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: API";
+				}
+				else
+				{
+					$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+				}
+
+				$order->add_order_note( $note );
+				$order->save();
+
+				$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
 			}
 			else
 			{
-				$order_id = $order->get_order_number();
 				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
