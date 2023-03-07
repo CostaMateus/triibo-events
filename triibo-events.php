@@ -167,7 +167,7 @@ class Triibo_Events
 		$shipp          = $order->get_shipping_total();
 
 		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
-		$is_processing  = ( $new_status == "processing"  ) ? true : false;
+		$is_processing  = ( $new_status == "completed"   ) ? true : false;
 		$total_gt       = ( $total >= 50                 ) ? true : false;
 
 		if ( $original_order && $is_processing && $total_gt )
@@ -179,27 +179,41 @@ class Triibo_Events
 
 			if ( !empty( $triibo_id ) )
 			{
-				$triibo_id = preg_replace( "/\D/", "", $triibo_id );
-				$response  = $this->api->credit_points( $triibo_id, $total );
+				$has_cp = get_user_meta( $user_id, "has_cp_{$order_id}", true );
 
-				if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
+				if ( empty( $has_cp ) )
 				{
-					$movement_id = $response[ "data" ][ "movementID" ];
-					$note        = "Créditos adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
-				}
-				elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
-				{
-					$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: API";
+					$triibo_id = preg_replace( "/\D/", "", $triibo_id );
+					$response  = $this->api->credit_points( $triibo_id, $total );
+
+					if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
+					{
+						$movement_id = $response[ "data" ][ "movementID" ];
+						$note        = "Créditos adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
+					}
+					elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
+					{
+						$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: API";
+					}
+					else
+					{
+						$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+					}
+
+					$response = null;
+					$note     = "Processo desativado. {$triibo_id}";
+
+					$order->add_order_note( $note );
+					$order->save();
+
+					add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+
+					$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
 				}
 				else
 				{
-					$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+					$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with points/coupons" );
 				}
-
-				$order->add_order_note( $note );
-				$order->save();
-
-				$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
 			}
 			else
 			{
