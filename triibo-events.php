@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.0.0
+ * Version:              1.0.3
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -22,52 +22,47 @@ class Triibo_Events
 	/**
 	 * Plugin version.
 	 *
-	 * @var string
+	 * @since 	1.0.0
+	 * @var 	string
 	 */
-	const VERSION = "1.0.0";
+	const VERSION = "1.0.3";
 
 	/**
 	 * Plugin domain.
 	 *
-	 * @var string
+	 * @since 	1.0.0
+	 * @var 	string
 	 */
 	const DOMAIN  = "triibo_events";
 
 	/**
 	 * Instance of this class.
 	 *
-	 * @var object
+	 * @since 	1.0.0
+	 * @var 	object
 	 */
 	protected static $instance = null;
 
 	/**
 	 * WC Logger.
 	 *
-	 * @var wc_get_logger|WC_Logger
+	 * @since 	1.0.0
+	 * @var 	wc_get_logger|WC_Logger
 	 */
 	protected $log;
 
 	/**
 	 * Triibo Api Services - Gateway.
 	 *
-	 * @var Triibo_Api_Gateway
+	 * @since 	1.0.0
+	 * @var 	Triibo_Api_Gateway
 	 */
 	protected $api;
 
 	/**
-	 * Return an instance of this class.
-	 *
-	 * @return object A single instance of this class.
-	 */
-	public static function get_instance()
-    {
-		// If the single instance hasn't been set, set it now.
-		if ( null === self::$instance ) self::$instance = new self;
-		return self::$instance;
-	}
-
-	/**
 	 * Construct
+	 *
+	 * @since 	1.0.0
 	 */
 	private function __construct()
     {
@@ -91,7 +86,23 @@ class Triibo_Events
 	}
 
 	/**
+	 * Return an instance of this class.
+	 *
+	 * @since 	1.0.0
+	 * @return 	object A single instance of this class.
+	 */
+	public static function get_instance()
+    {
+		// If the single instance hasn't been set, set it now.
+		if ( null === self::$instance ) self::$instance = new self;
+		return self::$instance;
+	}
+
+	/**
 	 * Triibo-Api-Service missing notice.
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public static function triibo_api_services_missing_notice()
 	{
@@ -101,6 +112,7 @@ class Triibo_Events
 	/**
 	 * Action links.
 	 *
+	 * @since 	1.0.0
 	 * @param 	array $links
 	 * @return 	array
 	 */
@@ -116,6 +128,9 @@ class Triibo_Events
 
 	/**
 	 * adds 'Eventos' submenu to Triibo Services main menu
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public function add_submenu_page()
 	{
@@ -131,6 +146,9 @@ class Triibo_Events
 
 	/**
 	 * Template for submenu
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public function display_admin_menu_settings()
 	{
@@ -139,6 +157,9 @@ class Triibo_Events
 
 	/**
 	 * Link to plugin settings
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public function add_btn()
 	{
@@ -151,15 +172,20 @@ class Triibo_Events
 
 	/**
 	 * Add this plugin's dependency in the Triibo Api Services settings
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public function add_info_dependency()
 	{
 		echo "<p> - Triibo Eventos</p>";
 	}
 
-
 	/**
 	 * Valid if is a sub-order and sends event for Triibo
+	 *
+	 * @since 	1.0.0
+	 * @return 	void
 	 */
 	public function order_status_change( $order_id, $old_status, $new_status, $order )
 	{
@@ -179,6 +205,10 @@ class Triibo_Events
 
 			if ( !empty( $triibo_id ) )
 			{
+				/**
+				 * Verificação se o pedido já foi creditado
+				 * @since 	1.0.3
+				 */
 				$has_cp = get_user_meta( $user_id, "has_cp_{$order_id}", true );
 
 				if ( empty( $has_cp ) )
@@ -225,7 +255,9 @@ class Triibo_Events
     /**
      * Register log
      *
-     * @param string $data
+	 * @since 	1.0.0
+     * @param 	string $data
+	 * @return 	void
      */
     public function log( string $data )
     {
