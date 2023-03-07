@@ -230,9 +230,6 @@ class Triibo_Events
 						$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
 					}
 
-					$response = null;
-					$note     = "Processo desativado. {$triibo_id}";
-
 					$order->add_order_note( $note );
 					$order->save();
 
