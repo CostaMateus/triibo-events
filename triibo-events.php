@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.0.3
+ * Version:              1.0.4
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.0.3";
+	const VERSION = "1.0.4";
 
 	/**
 	 * Plugin domain.
@@ -194,14 +194,17 @@ class Triibo_Events
 
 		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
 		$is_processing  = ( $new_status == "completed"   ) ? true : false;
-		$total_gt       = ( $total >= 50                 ) ? true : false;
 
-		if ( $original_order && $is_processing && $total_gt )
+		/**
+		 * Removido da condicional principal que dispara os eventos
+		 * @since 	1.0.4
+		 */
+		// $total_gt = ( $total >= 50 ) ? true : false;
+
+		if ( $original_order && $is_processing )
 		{
 			$user_id   = $order->get_user_id();
 			$triibo_id = get_user_meta( $user_id, "triiboId_phone", true );
-
-			$subtotal  = $total - $shipp;
 
 			if ( !empty( $triibo_id ) )
 			{
@@ -213,29 +216,28 @@ class Triibo_Events
 
 				if ( empty( $has_cp ) )
 				{
+					$event     = "Compra_Marketplace";
 					$triibo_id = preg_replace( "/\D/", "", $triibo_id );
-					$response  = $this->api->credit_points( $triibo_id, $total );
-
-					if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
-					{
-						$movement_id = $response[ "data" ][ "movementID" ];
-						$note        = "Créditos adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
-					}
-					elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
-					{
-						$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: API";
-					}
-					else
-					{
-						$note        = "Falha ao adicionar créditos a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
-					}
-
-					$order->add_order_note( $note );
-					$order->save();
-
-					add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+					$response  = $this->api->credit_points( $triibo_id, $total, $event );
 
 					$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
+					$this->add_note( $order, $triibo_id, $event, $response );
+
+					foreach ( $order->get_items() as $item_id => $item )
+					{
+						if ( $item->get_product_id() == 670 )
+						{
+							$event    = "Assinatura_Triibo_Vip";
+							$response = $this->api->credit_points( $triibo_id, 1, $event );
+
+							$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
+							$this->add_note( $order, $triibo_id, $event, $response );
+							break;
+						}
+					}
+
+					$order->save();
+					add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
 				}
 				else
 				{
@@ -247,6 +249,37 @@ class Triibo_Events
 				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
+	}
+
+	/**
+	 * Add note to order
+	 *
+	 * @since 	1.0.4
+	 * @return 	void
+	 */
+	public function add_note( &$order, $triibo_id, $event, $response )
+	{
+		$note = "Evento: {$event}";
+
+		if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
+		{
+			$movement_id  = $response[ "data" ][ "movementID" ];
+			$note        .= "\nCréditos/cupons adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
+		}
+		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
+		{
+			$note        .= "Falha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
+		}
+		elseif ( !$response[ "success" ] && isset( $response[ "event" ] ) )
+		{
+			$note        .= "Evento não suportado\nConta: {$triibo_id}\nErro: MKT";
+		}
+		else
+		{
+			$note        .= "Falha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+		}
+
+		$order->add_order_note( $note );
 	}
 
     /**
