@@ -216,7 +216,7 @@ class Triibo_Events
 			if ( !empty( $triibo_id ) )
 			{
 				// assinatura
-				if ( wcs_order_contains_subscription( $order_id ) && $is_processing )
+				if ( $is_processing && wcs_order_contains_subscription( $order_id ) )
 				{
 					foreach ( $order->get_items() as $item_id => $item )
 					{
@@ -248,8 +248,9 @@ class Triibo_Events
 						}
 					}
 				}
+
 				// compra normal
-				elseif ( $is_completed )
+				if ( $is_completed && !wcs_order_contains_subscription( $order_id ) )
 				{
 					if ( empty( $has_cp ) )
 					{
