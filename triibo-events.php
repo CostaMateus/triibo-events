@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.0.4
+ * Version:              1.1.0
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.0.4";
+	const VERSION = "1.1.0";
 
 	/**
 	 * Plugin domain.
@@ -184,64 +184,83 @@ class Triibo_Events
 	/**
 	 * Valid if is a sub-order and sends event for Triibo
 	 *
+	 * @since 	1.1.0 Rebuilt method to work with different statuses
 	 * @since 	1.0.0
 	 * @return 	void
 	 */
 	public function order_status_change( $order_id, $old_status, $new_status, $order )
 	{
 		$total          = $order->get_total();
-		$shipp          = $order->get_shipping_total();
-
 		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
-		$is_processing  = ( $new_status == "completed"   ) ? true : false;
+		$is_processing  = ( $new_status == "processing"  ) ? true : false;
+		$is_completed   = ( $new_status == "completed"   ) ? true : false;
+
+		$user_id        = $order->get_user_id();
+		$triibo_id      = get_user_meta( $user_id, "triiboId_phone", true );
+		$triibo_id      = preg_replace( "/\D/", "", $triibo_id );
 
 		/**
-		 * Removido da condicional principal que dispara os eventos
-		 * @since 	1.0.4
+		 * Verificação se o evento Compra_Marketplace já foi executado
+		 * @since 	1.0.3
 		 */
-		// $total_gt = ( $total >= 50 ) ? true : false;
+		$has_cp  = get_user_meta( $user_id, "has_cp_{$order_id}", true );
 
-		if ( $original_order && $is_processing )
+		/**
+		 * Verificação se o evento Assinatura_Triibo_Vip já foi executado
+		 * @since 	1.1.0
+		 */
+		$has_atv = get_user_meta( $user_id, "has_atv_{$order_id}", true );
+
+		if ( $original_order )
 		{
-			$user_id   = $order->get_user_id();
-			$triibo_id = get_user_meta( $user_id, "triiboId_phone", true );
-
 			if ( !empty( $triibo_id ) )
 			{
-				/**
-				 * Verificação se o pedido já foi creditado
-				 * @since 	1.0.3
-				 */
-				$has_cp = get_user_meta( $user_id, "has_cp_{$order_id}", true );
-
-				if ( empty( $has_cp ) )
+				// assinatura
+				if ( wcs_order_contains_subscription( $order_id ) && $is_processing )
 				{
-					$event     = "Compra_Marketplace";
-					$triibo_id = preg_replace( "/\D/", "", $triibo_id );
-					$response  = $this->api->credit_points( $triibo_id, $total, $event );
-
-					$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
-					$this->add_note( $order, $triibo_id, $event, $response );
-
 					foreach ( $order->get_items() as $item_id => $item )
 					{
-						if ( $item->get_product_id() == 670 )
+						// Triibo VIP
+						if ( $item->get_product_id() == 939930 )
 						{
-							$event    = "Assinatura_Triibo_Vip";
-							$response = $this->api->credit_points( $triibo_id, 1, $event );
+							if ( empty( $has_cp ) )
+							{
+								$this->compra_marketplace( $order, $triibo_id, $total );
+								add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+							}
+							else
+							{
+								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
+							}
 
-							$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
-							$this->add_note( $order, $triibo_id, $event, $response );
+							if ( empty( $has_atv ) )
+							{
+								$this->assinatura_tribo_vip( $order, $triibo_id, 1 );
+								add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
+							}
+							else
+							{
+								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+							}
+
+							$order->save();
 							break;
 						}
 					}
-
-					$order->save();
-					add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
 				}
-				else
+				// compra normal
+				elseif ( $is_completed )
 				{
-					$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with points/coupons" );
+					if ( empty( $has_cp ) )
+					{
+						$this->compra_marketplace( $order, $triibo_id, $total );
+						add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+						$order->save();
+					}
+					else
+					{
+						$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
+					}
 				}
 			}
 			else
@@ -249,6 +268,44 @@ class Triibo_Events
 				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
+	}
+
+	/**
+	 * Call event Compra_Marketplace
+	 *
+	 * @since 	1.1.0
+	 * @return 	void
+	 */
+	public function compra_marketplace( &$order, $triibo_id, $total )
+	{
+		$event = "Compra_Marketplace";
+		$this->call_event( $event, $order, $triibo_id, $total );
+	}
+
+	/**
+	 * Call event Assinatura_Triibo_Vip
+	 *
+	 * @since 	1.1.0
+	 * @return 	void
+	 */
+	public function assinatura_tribo_vip( &$order, $triibo_id, $total = 1 )
+	{
+		$event = "Assinatura_Triibo_Vip";
+		$this->call_event( $event, $order, $triibo_id, $total );
+	}
+
+	/**
+	 * Call event
+	 *
+	 * @since 	1.1.0
+	 * @return 	void
+	 */
+	private function call_event( $event, &$order, $triibo_id, $total )
+	{
+		$response = $this->api->credit_points( $triibo_id, $total, $event );
+
+		$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
+		$this->add_note( $order, $triibo_id, $event, $response );
 	}
 
 	/**
