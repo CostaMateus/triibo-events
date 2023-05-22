@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.1.0
+ * Version:              1.2.0
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.1.0";
+	const VERSION = "1.2.0";
 
 	/**
 	 * Plugin domain.
@@ -74,7 +74,8 @@ class Triibo_Events
 			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
 			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
 
-			add_action( "woocommerce_order_status_changed",    [ $this, "order_status_change" ], 10, 4 );
+			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
+			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
 
 			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api = new Triibo_Api_Gateway();
@@ -272,6 +273,68 @@ class Triibo_Events
 	}
 
 	/**
+	 * Triggered events when subscription renewal payment is confirmed
+	 * Similar to order_status_change()
+	 *
+	 * @since 	1.2.0
+	 * @return 	void
+	 */
+	public function subscription_renewal( $subscription, $order )
+	{
+		$total          = $order->get_total();
+		$order_id       = $order->get_id();
+		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
+
+		$user_id        = $order->get_user_id();
+		$triibo_id      = get_user_meta( $user_id, "triiboId_phone", true );
+		$triibo_id      = preg_replace( "/\D/", "", $triibo_id );
+
+		$has_cp         = get_user_meta( $user_id, "has_cp_{$order_id}",  true );
+		$has_atv        = get_user_meta( $user_id, "has_atv_{$order_id}", true );
+
+		if ( $original_order )
+		{
+			if ( !empty( $triibo_id ) )
+			{
+				// assinatura
+				foreach ( $order->get_items() as $item_id => $item )
+				{
+					// Triibo VIP
+					if ( $item->get_product_id() == 939930 )
+					{
+						if ( empty( $has_cp ) )
+						{
+							$this->compra_marketplace( $order, $triibo_id, $total );
+							add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+						}
+						else
+						{
+							$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
+						}
+
+						if ( empty( $has_atv ) )
+						{
+							$this->assinatura_tribo_vip( $order, $triibo_id, 1 );
+							add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
+						}
+						else
+						{
+							$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+						}
+
+						$order->save();
+						break;
+					}
+				}
+			}
+			else
+			{
+				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+			}
+		}
+	}
+
+	/**
 	 * Call event Compra_Marketplace
 	 *
 	 * @since 	1.1.0
@@ -305,7 +368,11 @@ class Triibo_Events
 	{
 		$response = $this->api->credit_points( $triibo_id, $total, $event );
 
-		$this->log( json_encode( [ "triibo_id" => $triibo_id, "response" => $response ] ) );
+		/**
+		 * Adicionado campo event ao log
+		 * @since 	1.2.0
+		 */
+		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
 		$this->add_note( $order, $triibo_id, $event, $response );
 	}
 
