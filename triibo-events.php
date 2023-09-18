@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.2.1
+ * Version:              1.3.0
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.2.1";
+	const VERSION = "1.3.0";
 
 	/**
 	 * Plugin domain.
@@ -34,6 +34,18 @@ class Triibo_Events
 	 * @var 	string
 	 */
 	const DOMAIN  = "triibo_events";
+
+	/**
+	 * Assinaturas Triibo VIP
+	 *
+	 * @since 	1.3.0
+	 * @var 	array
+	 */
+	const PLANS   = [
+		939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
+		957852 => "Assinatura_Triibo_VIP_Plano_2", // product_id => event_ATV Plano 2
+		957855 => "Assinatura_Triibo_VIP_Plano_3"  // product_id => event_ATV Plano 3
+	];
 
 	/**
 	 * Instance of this class.
@@ -223,7 +235,7 @@ class Triibo_Events
 					foreach ( $order->get_items() as $item_id => $item )
 					{
 						// Triibo VIP
-						if ( $item->get_product_id() == 939930 )
+						if ( in_array( $item->get_product_id(), self::PLANS ) )
 						{
 							if ( empty( $has_cp ) )
 							{
@@ -237,7 +249,9 @@ class Triibo_Events
 
 							if ( empty( $has_atv ) )
 							{
-								$this->assinatura_tribo_vip( $order, $triibo_phone, 1 );
+								$event = self::PLANS[ $item->get_product_id() ];
+
+								$this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
 								add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
 							}
 							else
@@ -302,7 +316,7 @@ class Triibo_Events
 				foreach ( $order->get_items() as $item_id => $item )
 				{
 					// Triibo VIP
-					if ( $item->get_product_id() == 939930 )
+					if ( in_array( $item->get_product_id(), self::PLANS ) )
 					{
 						if ( empty( $has_cp ) )
 						{
@@ -316,7 +330,9 @@ class Triibo_Events
 
 						if ( empty( $has_atv ) )
 						{
-							$this->assinatura_tribo_vip( $order, $triibo_phone, 1 );
+							$event = self::PLANS[ $item->get_product_id() ];
+
+							$this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
 							add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
 						}
 						else
@@ -349,14 +365,14 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call event Assinatura_Triibo_Vip
+	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3
 	 *
+	 * @since 	1.3.0 	Added parameter $event
 	 * @since 	1.1.0
 	 * @return 	void
 	 */
-	public function assinatura_tribo_vip( &$order, $triibo_id, $total = 1 )
+	public function assinatura_tribo_vip( &$order, $triibo_id, $total = 1, $event )
 	{
-		$event = "Assinatura_Triibo_Vip";
 		$this->call_event( $event, $order, $triibo_id, $total );
 	}
 
