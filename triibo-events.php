@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.3.0
+ * Version:              1.3.1
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.3.0";
+	const VERSION = "1.3.1";
 
 	/**
 	 * Plugin domain.
@@ -235,7 +235,7 @@ class Triibo_Events
 					foreach ( $order->get_items() as $item_id => $item )
 					{
 						// Triibo VIP
-						if ( in_array( $item->get_product_id(), self::PLANS ) )
+						if ( isset( self::PLANS[ $item->get_product_id() ] ) )
 						{
 							if ( empty( $has_cp ) )
 							{
@@ -316,7 +316,7 @@ class Triibo_Events
 				foreach ( $order->get_items() as $item_id => $item )
 				{
 					// Triibo VIP
-					if ( in_array( $item->get_product_id(), self::PLANS ) )
+					if ( isset( self::PLANS[ $item->get_product_id() ] ) )
 					{
 						if ( empty( $has_cp ) )
 						{
