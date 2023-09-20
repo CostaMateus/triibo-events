@@ -448,15 +448,15 @@ class Triibo_Events
 		}
 		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
 		{
-			$note        .= "Falha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
+			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
 		}
 		elseif ( !$response[ "success" ] && isset( $response[ "event" ] ) )
 		{
-			$note        .= "Evento não suportado\nConta: {$triibo_id}\nErro: MKT";
+			$note        .= "\nEvento não suportado\nConta: {$triibo_id}\nErro: MKT";
 		}
 		else
 		{
-			$note        .= "Falha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
 		}
 
 		$order->add_order_note( $note );
