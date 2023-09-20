@@ -43,8 +43,8 @@ class Triibo_Events
 	 */
 	const PLANS   = [
 		939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
-		957852 => "Assinatura_Triibo_VIP_Plano_2", // product_id => event_ATV Plano 2
-		957855 => "Assinatura_Triibo_VIP_Plano_3"  // product_id => event_ATV Plano 3
+		957852 => "Assinatura_Triibo_Vip_Plano_2", // product_id => event_ATV Plano 2
+		957855 => "Assinatura_Triibo_Vip_Plano_3"  // product_id => event_ATV Plano 3
 	];
 
 	/**
