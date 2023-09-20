@@ -4,7 +4,7 @@
  * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author:               Mateus Costa
  * Author URI:           https://costamateus.com.br/
- * Version:              1.3.1
+ * Version:              1.3.2
  * Text Domain:          triibo_events
  * RequiresPHP:          7.4
  * RequiresWP:           5.9
@@ -25,7 +25,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.3.1";
+	const VERSION = "1.3.2";
 
 	/**
 	 * Plugin domain.
@@ -239,8 +239,14 @@ class Triibo_Events
 						{
 							if ( empty( $has_cp ) )
 							{
-								$this->compra_marketplace( $order, $triibo_phone, $total );
-								add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+								/**
+								 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+								 * @since 	1.3.2
+								 */
+								$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+
+								if ( $response[ "success" ] )
+									add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
 							}
 							else
 							{
@@ -251,8 +257,14 @@ class Triibo_Events
 							{
 								$event = self::PLANS[ $item->get_product_id() ];
 
-								$this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
-								add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
+								/**
+								 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+								 * @since 	1.3.2
+								 */
+								$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
+
+								if ( $response[ "success" ] )
+									add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
 							}
 							else
 							{
@@ -270,8 +282,15 @@ class Triibo_Events
 				{
 					if ( empty( $has_cp ) )
 					{
-						$this->compra_marketplace( $order, $triibo_phone, $total );
-						add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+						/**
+						 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+						 * @since 	1.3.2
+						 */
+						$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+
+						if ( $response[ "success" ] )
+							add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+
 						$order->save();
 					}
 					else
@@ -320,8 +339,14 @@ class Triibo_Events
 					{
 						if ( empty( $has_cp ) )
 						{
-							$this->compra_marketplace( $order, $triibo_phone, $total );
-							add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
+							/**
+							 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+							 * @since 	1.3.2
+							 */
+							$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+
+							if ( $response[ "success" ] )
+								add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
 						}
 						else
 						{
@@ -330,10 +355,16 @@ class Triibo_Events
 
 						if ( empty( $has_atv ) )
 						{
-							$event = self::PLANS[ $item->get_product_id() ];
+							$event    = self::PLANS[ $item->get_product_id() ];
 
-							$this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
-							add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
+							/**
+							 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+							 * @since 	1.3.2
+							 */
+							$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
+
+							if ( $response[ "success" ] )
+								add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
 						}
 						else
 						{
@@ -355,32 +386,36 @@ class Triibo_Events
 	/**
 	 * Call event Compra_Marketplace
 	 *
+	 * @since 	1.3.2 	Added return value
 	 * @since 	1.1.0
-	 * @return 	void
+	 * @return 	array
 	 */
 	public function compra_marketplace( &$order, $triibo_id, $total )
 	{
 		$event = "Compra_Marketplace";
-		$this->call_event( $event, $order, $triibo_id, $total );
+
+		return $this->call_event( $event, $order, $triibo_id, $total );
 	}
 
 	/**
 	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3
 	 *
+	 * @since 	1.3.2 	Added return value
 	 * @since 	1.3.0 	Added parameter $event
 	 * @since 	1.1.0
-	 * @return 	void
+	 * @return 	array
 	 */
 	public function assinatura_tribo_vip( &$order, $triibo_id, $total = 1, $event )
 	{
-		$this->call_event( $event, $order, $triibo_id, $total );
+		return $this->call_event( $event, $order, $triibo_id, $total );
 	}
 
 	/**
 	 * Call event
 	 *
+	 * @since 	1.3.2 	Added return value
 	 * @since 	1.1.0
-	 * @return 	void
+	 * @return 	array
 	 */
 	private function call_event( $event, &$order, $triibo_id, $total )
 	{
@@ -392,6 +427,8 @@ class Triibo_Events
 		 */
 		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
 		$this->add_note( $order, $triibo_id, $event, $response );
+
+		return $response;
 	}
 
 	/**
