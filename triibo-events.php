@@ -45,9 +45,9 @@ class Triibo_Events
 	 */
 	const PLANS   = [
 		"hml" => [
-			330551 => "Assinatura_Triibo_Vip",
-			816675 => "Assinatura_Triibo_Vip_Plano_2",
-			816676 => "Assinatura_Triibo_Vip_Plano_3"
+			816851 => "Assinatura_Triibo_Vip",
+			816853 => "Assinatura_Triibo_Vip_Plano_2",
+			816854 => "Assinatura_Triibo_Vip_Plano_3"
 		],
 		"prd" => [
 			939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
