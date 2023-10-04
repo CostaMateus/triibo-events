@@ -1,15 +1,16 @@
 <?php
 /**
- * Plugin Name:          #Triibo_Eventos
- * Description:          Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
- * Author:               Mateus Costa
- * Author URI:           https://costamateus.com.br/
- * Version:              1.3.2
- * Text Domain:          triibo_events
- * RequiresPHP:          7.4
- * RequiresWP:           5.9
- * WC requires at least: 5.8
- * WC tested up to:      6.3
+ * Plugin Name: 			#Triibo_Eventos
+ * Plugin URI: 				https://triibo.com.br
+ * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
+ * Author: 					Mateus Costa
+ * Author URI: 				https://costamateus.com.br/
+ * Version: 				1.4.0
+ * Text Domain: 			triibo_events
+ * RequiresPHP: 			7.4
+ * RequiresWP: 				5.9
+ * WC requires at least: 	5.8
+ * WC tested up to: 		6.3
  *
  * @package Triibo_Events
  */
@@ -25,7 +26,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.3.2";
+	const VERSION = "1.4.0";
 
 	/**
 	 * Plugin domain.
@@ -82,6 +83,11 @@ class Triibo_Events
 		{
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
+			/**
+			 * @since 1.4.0
+			 */
+			add_filter( "plugin_row_meta",                                    [ $this, "plugin_row_meta"     ], 10, 3 );
+
 			add_action( "admin_menu",                          [ $this, "add_submenu_page"    ], 11    );
 			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
 			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
@@ -137,6 +143,38 @@ class Triibo_Events
 		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
 
 		return array_merge( $plugin_links, $links );
+	}
+
+	/**
+	 * Add link to changelog modal
+	 *
+	 * @since 	1.4.0
+	 * @param 	array 	$plugin_meta
+	 * @param 	string 	$plugin_file
+	 * @param 	array 	$plugin_data
+	 * @return 	array
+	 */
+	public function plugin_row_meta( $plugin_meta, $plugin_file, $plugin_data )
+	{
+		$path = path_join( WP_PLUGIN_DIR, $plugin_file );
+
+		if ( DIRECTORY_SEPARATOR == "\\" )
+			$path = str_replace( "/", "\\", $path );
+
+        if ( __FILE__ === $path )
+		{
+            $url = plugins_url( "readme.txt", __FILE__ );
+
+            $plugin_meta[] = sprintf(
+                "<a href='%s' class='thickbox open-plugin-details-modal' aria-label='%s' data-title='%s'>%s</a>",
+                add_query_arg( "TB_iframe", "true", $url ),
+                esc_attr( sprintf( __( "More information about %s" ), $plugin_data[ "Name" ] ) ),
+                esc_attr( $plugin_data[ "Name" ] ),
+                __( "Histórico de alterações" )
+            );
+        }
+
+        return $plugin_meta;
 	}
 
 	/**
@@ -476,3 +514,26 @@ class Triibo_Events
 }
 
 add_action( "plugins_loaded", array( "Triibo_Events", "get_instance" ), 222 );
+
+
+
+
+/**
+ * ==============PRD==============
+ * RETIRAR
+ * orgId  = CHGHpvafwRauRDsGUzuK
+ * name   = Triibo
+ *
+ * ADICIONAR
+ * orgId  = -NVUhxocgIAf_vgFmYvx
+ * name   = Triibo V.I.P
+ *
+ * ==============HML==============
+ * RETIRAR
+ * orgId  = mlmtgPFBctdnJeJ9Bz4i
+ * name   = triibo
+ *
+ * ADICIONAR
+ * orgId  = triiboVip
+ * name   = Triibo V.I.P
+ */
