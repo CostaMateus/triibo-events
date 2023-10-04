@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.4.0
+ * Version: 				1.5.0
  * Text Domain: 			triibo_events
  * RequiresPHP: 			7.4
  * RequiresWP: 				5.9
@@ -26,7 +26,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.4.0";
+	const VERSION = "1.5.0";
 
 	/**
 	 * Plugin domain.
@@ -39,13 +39,38 @@ class Triibo_Events
 	/**
 	 * Assinaturas Triibo VIP
 	 *
+	 * @since 	1.5.0 Add env
 	 * @since 	1.3.0
 	 * @var 	array
 	 */
 	const PLANS   = [
-		939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
-		957852 => "Assinatura_Triibo_Vip_Plano_2", // product_id => event_ATV Plano 2
-		957855 => "Assinatura_Triibo_Vip_Plano_3"  // product_id => event_ATV Plano 3
+		"hml" => [
+			330551 => "Assinatura_Triibo_Vip",
+			816675 => "Assinatura_Triibo_Vip_Plano_2",
+			816676 => "Assinatura_Triibo_Vip_Plano_3"
+		],
+		"prd" => [
+			939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
+			957852 => "Assinatura_Triibo_Vip_Plano_2", // product_id => event_ATV Plano 2
+			957855 => "Assinatura_Triibo_Vip_Plano_3"  // product_id => event_ATV Plano 3
+		]
+	];
+
+	/**
+	 * Orgs according to the env
+	 *
+	 * @since 	1.5.0
+	 * @var 	array
+	 */
+	const ORGS    = [
+		"hml" => [
+			"add" => "triiboVip",            // vip
+			"del" => "mlmtgPFBctdnJeJ9Bz4i", // normal
+		],
+		"prd" => [
+			"add" => "-NVUhxocgIAf_vgFmYvx", // vip
+			"del" => "CHGHpvafwRauRDsGUzuK", // normal
+		]
 	];
 
 	/**
@@ -73,6 +98,13 @@ class Triibo_Events
 	protected $api;
 
 	/**
+	 * Environment
+	 *
+	 * @var 	string
+	 */
+	protected $env;
+
+	/**
 	 * Construct
 	 *
 	 * @since 	1.0.0
@@ -86,7 +118,7 @@ class Triibo_Events
 			/**
 			 * @since 1.4.0
 			 */
-			add_filter( "plugin_row_meta",                                    [ $this, "plugin_row_meta"     ], 10, 3 );
+			add_filter( "plugin_row_meta", [ $this, "plugin_row_meta" ], 10, 3 );
 
 			add_action( "admin_menu",                          [ $this, "add_submenu_page"    ], 11    );
 			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
@@ -97,6 +129,11 @@ class Triibo_Events
 
 			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api = new Triibo_Api_Gateway();
+
+			/**
+			 * @since 1.5.0
+			 */
+			$this->env = $this->get_env();
 		}
 		else
 		{
@@ -273,7 +310,7 @@ class Triibo_Events
 					foreach ( $order->get_items() as $item_id => $item )
 					{
 						// Triibo VIP
-						if ( isset( self::PLANS[ $item->get_product_id() ] ) )
+						if ( isset( self::PLANS[ $this->env ][ $item->get_product_id() ] ) )
 						{
 							if ( empty( $has_cp ) )
 							{
@@ -293,7 +330,7 @@ class Triibo_Events
 
 							if ( empty( $has_atv ) )
 							{
-								$event = self::PLANS[ $item->get_product_id() ];
+								$event = self::PLANS[ $this->env ][ $item->get_product_id() ];
 
 								/**
 								 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
@@ -302,7 +339,14 @@ class Triibo_Events
 								$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
 
 								if ( $response[ "success" ] )
+								{
 									add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
+
+									/**
+									 * @since 1.5.0
+									 */
+									$this->update_user_orgs( $user_id );
+								}
 							}
 							else
 							{
@@ -373,7 +417,7 @@ class Triibo_Events
 				foreach ( $order->get_items() as $item_id => $item )
 				{
 					// Triibo VIP
-					if ( isset( self::PLANS[ $item->get_product_id() ] ) )
+					if ( isset( self::PLANS[ $this->env ][ $item->get_product_id() ] ) )
 					{
 						if ( empty( $has_cp ) )
 						{
@@ -393,7 +437,7 @@ class Triibo_Events
 
 						if ( empty( $has_atv ) )
 						{
-							$event    = self::PLANS[ $item->get_product_id() ];
+							$event    = self::PLANS[ $this->env ][ $item->get_product_id() ];
 
 							/**
 							 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
@@ -511,29 +555,43 @@ class Triibo_Events
     {
         $this->log->add( self::DOMAIN, $data );
     }
+
+	/**
+	 * Get environment
+	 *
+	 * @since 	1.5.0
+	 * @return 	string 	hml|prd
+	 */
+	private function get_env()
+	{
+		return ( get_option( "home" ) === "https://marketplace.triibo.com.br" )
+				? "prd" : "hml";
+	}
+
+	/**
+	 * Update user orgs
+	 *
+	 * @since 	1.5.0
+	 * @return 	void
+	 */
+	public function update_user_orgs( $user_id )
+	{
+		$org      = self::ORGS[ $this->env ];
+		$uid      = get_user_meta( $user_id, "_triibo_id", true );
+
+		$response = $this->api->add_org( $uid, $org[ "add" ] );
+
+		if ( !$response[ "success" ] )
+		{
+			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+			return;
+		}
+
+		$response = $this->api->del_org( $uid, $org[ "del" ] );
+
+		if ( !$response[ "success" ] )
+			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+	}
 }
 
 add_action( "plugins_loaded", array( "Triibo_Events", "get_instance" ), 222 );
-
-
-
-
-/**
- * ==============PRD==============
- * RETIRAR
- * orgId  = CHGHpvafwRauRDsGUzuK
- * name   = Triibo
- *
- * ADICIONAR
- * orgId  = -NVUhxocgIAf_vgFmYvx
- * name   = Triibo V.I.P
- *
- * ==============HML==============
- * RETIRAR
- * orgId  = mlmtgPFBctdnJeJ9Bz4i
- * name   = triibo
- *
- * ADICIONAR
- * orgId  = triiboVip
- * name   = Triibo V.I.P
- */
