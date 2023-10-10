@@ -71,7 +71,7 @@ class Triibo_Events
 		],
 		"prd" => [
 			"add" => "-NVUhxocgIAf_vgFmYvx", // vip
-			"del" => "CHGHpvafwRauRDsGUzuK", // normal
+			"del" => "triibo",               // normal
 		]
 	];
 
