@@ -5,14 +5,16 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.5.0
+ * Version: 				1.5.1
  * Text Domain: 			triibo_events
- * RequiresPHP: 			7.4
- * RequiresWP: 				5.9
- * WC requires at least: 	5.8
- * WC tested up to: 		6.3
+ * Requires PHP: 			7.4
+ * Requires at least: 		6.0
+ * Tested up to: 			6.3
+ * WC requires at least: 	6.5
+ * WC tested up to: 		8.1
  *
- * @package Triibo_Events
+ * @package 	Triibo_Events
+ * @version 	1.5.1
  */
 defined( "ABSPATH" ) || exit;
 
@@ -26,7 +28,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.5.0";
+	const VERSION = "1.5.1";
 
 	/**
 	 * Plugin domain.
