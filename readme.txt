@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 1.5.2 - 2023/11/07 =
+
+- Adiciona nota ao pedido quando evento que muda as orgs do usuário for disparado
+
 = 1.5.1 - 2023/10/10 =
 
 - Unificação e atualização de requerimentos
