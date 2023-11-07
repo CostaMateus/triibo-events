@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services e WooCommerce.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.5.1
+ * Version: 				1.5.2
  * Text Domain: 			triibo_events
  * Requires PHP: 			7.4
  * Requires at least: 		6.0
@@ -14,7 +14,7 @@
  * WC tested up to: 		8.1
  *
  * @package 	Triibo_Events
- * @version 	1.5.1
+ * @version 	1.5.2
  */
 defined( "ABSPATH" ) || exit;
 
@@ -28,7 +28,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.5.1";
+	const VERSION = "1.5.2";
 
 	/**
 	 * Plugin domain.
@@ -61,17 +61,30 @@ class Triibo_Events
 	/**
 	 * Orgs according to the env
 	 *
+	 * @since 	1.5.2 	Added 'id' and 'name' indexes
 	 * @since 	1.5.0
 	 * @var 	array
 	 */
 	const ORGS    = [
 		"hml" => [
-			"add" => "triiboVip",            // vip
-			"del" => "mlmtgPFBctdnJeJ9Bz4i", // normal
+			"add" => [
+				"id"   => "-Ngta5dXbnSxCJravalh",            // vip
+				"name" => "Triibo V.I.P",
+			],
+			"del" => [
+				"id"   => "mlmtgPFBctdnJeJ9Bz4i", // normal
+				"name" => "Triibo",
+			]
 		],
 		"prd" => [
-			"add" => "-NVUhxocgIAf_vgFmYvx", // vip
-			"del" => "triibo",               // normal
+			"add" => [
+				"id"   => "-NVUhxocgIAf_vgFmYvx", // vip
+				"name" => "Triibo V.I.P",
+			],
+			"del" => [
+				"id"   => "triibo",               // normal
+				"name" => "Triibo",
+			]
 		]
 	];
 
@@ -274,7 +287,7 @@ class Triibo_Events
 	/**
 	 * Valid if is a sub-order and sends event for Triibo
 	 *
-	 * @since 	1.1.0 Rebuilt method to work with different statuses
+	 * @since 	1.1.0 	Rebuilt method to work with different statuses
 	 * @since 	1.0.0
 	 * @return 	void
 	 */
@@ -347,7 +360,7 @@ class Triibo_Events
 									/**
 									 * @since 1.5.0
 									 */
-									$this->update_user_orgs( $user_id );
+									$this->update_user_orgs( $user_id, $order, $event );
 								}
 							}
 							else
@@ -573,26 +586,55 @@ class Triibo_Events
 	/**
 	 * Update user orgs
 	 *
+	 * @since 	1.5.2 	Added $order and $event parameters
 	 * @since 	1.5.0
 	 * @return 	void
 	 */
-	public function update_user_orgs( $user_id )
+	public function update_user_orgs( $user_id, &$order, $event )
 	{
 		$org      = self::ORGS[ $this->env ];
+
+		$id_add   = $org[ "add" ][ "id"   ];
+		$name_add = $org[ "add" ][ "name" ];
+
+		$id_del   = $org[ "del" ][ "id"   ];
+		$name_del = $org[ "del" ][ "name" ];
+
 		$uid      = get_user_meta( $user_id, "_triibo_id", true );
 
-		$response = $this->api->add_org( $uid, $org[ "add" ] );
+		$response = $this->api->add_org( $uid, $id_add );
 
 		if ( !$response[ "success" ] )
 		{
 			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+
+			$note  = "Evento: {$event}";
+			$note .= "\nFalha ao adicionar organização ({$name_add}) ao usuário\nConta: {$uid}\nErro: API";
+
+			$order->add_order_note( $note );
+
 			return;
 		}
 
-		$response = $this->api->del_org( $uid, $org[ "del" ] );
+		$note     = "Evento: {$event}";
+		$note    .= "\nOrganização ($name_add) adicionada com sucesso";
+
+		$response = $this->api->del_org( $uid, $id_del );
 
 		if ( !$response[ "success" ] )
+		{
 			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+
+			$note .= "\n\nFalha ao remover organização ({$name_del}) do usuário\nConta: {$uid}\nErro: API";
+
+			$order->add_order_note( $note );
+
+			return;
+		}
+
+		$note    .= "\nOrganização ($name_del) removida com sucesso\nConta: {$uid}";
+
+		$order->add_order_note( $note );
 	}
 }
 
