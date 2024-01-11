@@ -68,7 +68,7 @@ class Triibo_Events
 	const ORGS    = [
 		"hml" => [
 			"add" => [
-				"id"   => "-Ngta5dXbnSxCJravalh",            // vip
+				"id"   => "-Ngta5dXbnSxCJravalh", // vip
 				"name" => "Triibo V.I.P",
 			],
 			"del" => [
@@ -592,6 +592,7 @@ class Triibo_Events
 	 */
 	public function update_user_orgs( $user_id, &$order, $event )
 	{
+		$note     = "Evento: {$event}";
 		$org      = self::ORGS[ $this->env ];
 
 		$id_add   = $org[ "add" ][ "id"   ];
@@ -602,37 +603,46 @@ class Triibo_Events
 
 		$uid      = get_user_meta( $user_id, "_triibo_id", true );
 
+		/**
+		 * Add org to user
+		 * Triibo VIP
+		 */
 		$response = $this->api->add_org( $uid, $id_add );
 
 		if ( !$response[ "success" ] )
 		{
 			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
 
-			$note  = "Evento: {$event}";
-			$note .= "\nFalha ao adicionar organização ({$name_add}) ao usuário\nConta: {$uid}\nErro: API";
+			$note .= "\n\nFalha ao adicionar organização ({$name_add}) ao usuário";
+			$note .= "\n\nConta: {$uid}\nErro: API";
 
 			$order->add_order_note( $note );
 
 			return;
 		}
 
-		$note     = "Evento: {$event}";
-		$note    .= "\nOrganização ($name_add) adicionada com sucesso";
+		$note    .= "\n\nOrganização ($name_add) adicionada com sucesso";
 
+		/**
+		 * Remove org from user
+		 * Triibo
+		 */
 		$response = $this->api->del_org( $uid, $id_del );
 
 		if ( !$response[ "success" ] )
 		{
 			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
 
-			$note .= "\n\nFalha ao remover organização ({$name_del}) do usuário\nConta: {$uid}\nErro: API";
+			$note .= "\n\nFalha ao remover organização ({$name_del}) do usuário";
+			$note .= "\n\nConta: {$uid}\nErro: API";
 
 			$order->add_order_note( $note );
 
 			return;
 		}
 
-		$note    .= "\nOrganização ($name_del) removida com sucesso\nConta: {$uid}";
+		$note    .= "\n\nOrganização ($name_del) removida com sucesso";
+		$note    .= "\n\nConta: {$uid}";
 
 		$order->add_order_note( $note );
 	}
