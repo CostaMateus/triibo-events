@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 1.6.0 - 2024/05/29 =
+
+- Adiciona três eventos de assinatura Triibo VIP
+
 = 1.5.2 - 2023/11/07 =
 
 - Adiciona nota ao pedido quando evento que muda as orgs do usuário for disparado
