@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.5.2
+ * Version: 				1.6.0
  * Text Domain: 			triibo_events
  * Requires PHP: 			7.4
  * Requires at least: 		6.0
@@ -14,7 +14,7 @@
  * WC tested up to: 		8.1
  *
  * @package 	Triibo_Events
- * @version 	1.5.2
+ * @version 	1.6.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -28,7 +28,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.5.2";
+	const VERSION = "1.6.0";
 
 	/**
 	 * Plugin domain.
@@ -41,7 +41,8 @@ class Triibo_Events
 	/**
 	 * Assinaturas Triibo VIP
 	 *
-	 * @since 	1.5.0 Add env
+	 * @since 	1.6.0 Added new plans
+	 * @since 	1.5.0 Added env
 	 * @since 	1.3.0
 	 * @var 	array
 	 */
@@ -54,7 +55,12 @@ class Triibo_Events
 		"prd" => [
 			939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
 			957852 => "Assinatura_Triibo_Vip_Plano_2", // product_id => event_ATV Plano 2
-			957855 => "Assinatura_Triibo_Vip_Plano_3"  // product_id => event_ATV Plano 3
+			957855 => "Assinatura_Triibo_Vip_Plano_3", // product_id => event_ATV Plano 3
+
+			// New plans
+			981120 => "Assinatura_Triibo_Vip_Plano_4",
+			981121 => "Assinatura_Triibo_Vip_Plano_5",
+			981122 => "Assinatura_Triibo_Vip_Plano_6",
 		]
 	];
 
