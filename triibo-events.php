@@ -128,12 +128,17 @@ class Triibo_Events
 	 * Construct
 	 *
 	 * @since 	1.7.0 	Added HPOS compatibility declaration
+	 * @since 	1.5.0 	Added var $env
+	 * @since 	1.4.0 	Added plugin change history
 	 * @since 	1.0.0
 	 */
 	private function __construct()
     {
 		if ( class_exists( "Triibo_Api_Services" ) )
 		{
+			/**
+			 * @since 1.7.0
+			 */
 			if ( class_exists( "WooCommerce" ) )
 				add_action( "before_woocommerce_init", [ $this, "setup_hpos_compatibility" ] );
 
