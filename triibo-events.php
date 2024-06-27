@@ -5,16 +5,15 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.6.0
+ * Version: 				1.7.0
  * Text Domain: 			triibo_events
+ * Requires at least: 		6.4
  * Requires PHP: 			7.4
- * Requires at least: 		6.0
- * Tested up to: 			6.3
- * WC requires at least: 	6.5
- * WC tested up to: 		8.1
+ * WC requires at least: 	8.0
+ * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.6.0
+ * @version 	1.7.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -28,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.6.0";
+	const VERSION = "1.7.0";
 
 	/**
 	 * Plugin domain.
@@ -128,12 +127,16 @@ class Triibo_Events
 	/**
 	 * Construct
 	 *
+	 * @since 	1.7.0 	Added HPOS compatibility declaration
 	 * @since 	1.0.0
 	 */
 	private function __construct()
     {
 		if ( class_exists( "Triibo_Api_Services" ) )
 		{
+			if ( class_exists( "WooCommerce" ) )
+				add_action( "before_woocommerce_init", [ $this, "setup_hpos_compatibility" ] );
+
 			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
 
 			/**
@@ -184,6 +187,27 @@ class Triibo_Events
 	public static function triibo_api_services_missing_notice()
 	{
 		include_once dirname( __FILE__ ) . "/includes/admin/views/html-notice-missing-triibo_api_services.php";
+	}
+
+	/**
+	 * Setup WooCommerce HPOS compatibility.
+	 *
+	 * @since 	1.7.0
+	 * @return 	void
+	 */
+	public function setup_hpos_compatibility() : void
+	{
+		if ( defined( "WC_VERSION" ) && version_compare( WC_VERSION, "7.1", "<" ) )
+			return;
+
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) )
+		{
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+				"custom_order_tables",
+				__FILE__,
+				true
+			);
+		}
 	}
 
 	/**
