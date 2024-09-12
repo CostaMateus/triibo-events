@@ -171,6 +171,39 @@ class Triibo_Events
 	}
 
 	/**
+	 * Get environment
+	 *
+	 * @since 	1.5.0
+	 * @return 	string 	hml|prd
+	 */
+	private function get_env()
+	{
+		return ( get_option( "home" ) === "https://marketplace.triibo.com.br" )
+				? "prd" : "hml";
+	}
+
+	/**
+	 * Call event
+	 *
+	 * @since 	1.3.2 	Added return value
+	 * @since 	1.1.0
+	 * @return 	array
+	 */
+	private function call_event( $event, &$order, $triibo_id, $total )
+	{
+		$response = $this->api->credit_points( $triibo_id, $total, $event );
+
+		/**
+		 * Adicionado campo event ao log
+		 * @since 	1.2.0
+		 */
+		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
+		$this->add_note( $order, $triibo_id, $event, $response );
+
+		return $response;
+	}
+
+	/**
 	 * Return an instance of this class.
 	 *
 	 * @since 	1.0.0
@@ -195,6 +228,23 @@ class Triibo_Events
 	}
 
 	/**
+	 * Action links.
+	 *
+	 * @since 	1.0.0
+	 * @param 	array $links
+	 * @return 	array
+	 */
+	public static function plugin_action_links( $links )
+    {
+        $url            = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
+        $text           = __( "Configurações", self::DOMAIN );
+		$plugin_links   = [];
+		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
+
+		return array_merge( $plugin_links, $links );
+	}
+
+	/**
 	 * Setup WooCommerce HPOS compatibility.
 	 *
 	 * @since 	1.7.0
@@ -213,23 +263,6 @@ class Triibo_Events
 				true
 			);
 		}
-	}
-
-	/**
-	 * Action links.
-	 *
-	 * @since 	1.0.0
-	 * @param 	array $links
-	 * @return 	array
-	 */
-	public static function plugin_action_links( $links )
-    {
-        $url            = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
-        $text           = __( "Configurações", self::DOMAIN );
-		$plugin_links   = [];
-		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
-
-		return array_merge( $plugin_links, $links );
 	}
 
 	/**
@@ -543,27 +576,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call event
-	 *
-	 * @since 	1.3.2 	Added return value
-	 * @since 	1.1.0
-	 * @return 	array
-	 */
-	private function call_event( $event, &$order, $triibo_id, $total )
-	{
-		$response = $this->api->credit_points( $triibo_id, $total, $event );
-
-		/**
-		 * Adicionado campo event ao log
-		 * @since 	1.2.0
-		 */
-		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
-		$this->add_note( $order, $triibo_id, $event, $response );
-
-		return $response;
-	}
-
-	/**
 	 * Add note to order
 	 *
 	 * @since 	1.0.4
@@ -605,18 +617,6 @@ class Triibo_Events
     {
         $this->log->add( self::DOMAIN, $data );
     }
-
-	/**
-	 * Get environment
-	 *
-	 * @since 	1.5.0
-	 * @return 	string 	hml|prd
-	 */
-	private function get_env()
-	{
-		return ( get_option( "home" ) === "https://marketplace.triibo.com.br" )
-				? "prd" : "hml";
-	}
 
 	/**
 	 * Update user orgs
