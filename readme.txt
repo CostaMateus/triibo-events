@@ -1,5 +1,10 @@
 == Changelog ==
 
+= 1.8.0 - 2024/06/27 =
+
+- Adicionada Triibo API Node
+- Adicionado eventos Assinatura Seu Clube
+
 = 1.7.0 - 2024/06/27 =
 
 - Adicionada compatibilidade com WooCommerce HPOS

@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.7.0
+ * Version: 				1.8.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -13,7 +13,7 @@
  * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.7.0
+ * @version 	1.8.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -27,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.7.0";
+	const VERSION = "1.8.0";
 
 	/**
 	 * Plugin domain.
@@ -38,10 +38,10 @@ class Triibo_Events
 	const DOMAIN  = "triibo_events";
 
 	/**
-	 * Assinaturas Triibo VIP
+	 * Subscription Triibo VIP.
 	 *
-	 * @since 	1.6.0 Added new plans
-	 * @since 	1.5.0 Added env
+	 * @since 	1.6.0 Added new plans.
+	 * @since 	1.5.0 Added env.
 	 * @since 	1.3.0
 	 * @var 	array
 	 */
@@ -64,9 +64,9 @@ class Triibo_Events
 	];
 
 	/**
-	 * Orgs according to the env
+	 * Orgs according to the env.
 	 *
-	 * @since 	1.5.2 	Added 'id' and 'name' indexes
+	 * @since 	1.5.2 	Added 'id' and 'name' indexes.
 	 * @since 	1.5.0
 	 * @var 	array
 	 */
@@ -94,6 +94,21 @@ class Triibo_Events
 	];
 
 	/**
+	 * @since 	1.8.0
+	 * @var 	array
+	 */
+	const SEU_CLUBE = [
+		"hml" => [
+			123123, // teste
+			321321  // teste
+		],
+		"prd" => [
+			456456, // teste
+			654654, // teste
+		],
+	];
+
+	/**
 	 * Instance of this class.
 	 *
 	 * @since 	1.0.0
@@ -118,18 +133,27 @@ class Triibo_Events
 	protected $api;
 
 	/**
-	 * Environment
+	 * Triibo Api Services - Node.
+	 *
+	 * @since 	1.8.0
+	 * @var 	Triibo_Api_Node
+	 */
+	protected $api_node;
+
+	/**
+	 * Environment.
 	 *
 	 * @var 	string
 	 */
 	protected $env;
 
 	/**
-	 * Construct
+	 * Construct.
 	 *
-	 * @since 	1.7.0 	Added HPOS compatibility declaration
-	 * @since 	1.5.0 	Added var $env
-	 * @since 	1.4.0 	Added plugin change history
+	 * @since 	1.8.0 	Added Triibo_Api_Node.
+	 * @since 	1.7.0 	Added HPOS compatibility declaration.
+	 * @since 	1.5.0 	Added var $env.
+	 * @since 	1.4.0 	Added plugin change history.
 	 * @since 	1.0.0
 	 */
 	private function __construct()
@@ -156,13 +180,18 @@ class Triibo_Events
 			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
 			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
 
-			$this->log = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
-			$this->api = new Triibo_Api_Gateway();
+			$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
+			$this->api      = new Triibo_Api_Gateway();
+
+			/**
+			 * @since 1.8.0
+			 */
+			$this->api_node = new Triibo_Api_Node();
 
 			/**
 			 * @since 1.5.0
 			 */
-			$this->env = $this->get_env();
+			$this->env      = $this->get_env();
 		}
 		else
 		{
@@ -171,7 +200,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Get environment
+	 * Get environment.
 	 *
 	 * @since 	1.5.0
 	 * @return 	string 	hml|prd
@@ -183,9 +212,9 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call event
+	 * Call event.
 	 *
-	 * @since 	1.3.2 	Added return value
+	 * @since 	1.3.2 	Added return value.
 	 * @since 	1.1.0
 	 * @return 	array
 	 */
@@ -194,7 +223,7 @@ class Triibo_Events
 		$response = $this->api->credit_points( $triibo_id, $total, $event );
 
 		/**
-		 * Adicionado campo event ao log
+		 * Added event field to log.
 		 * @since 	1.2.0
 		 */
 		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
@@ -266,7 +295,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Add link to changelog modal
+	 * Add link to changelog modal.
 	 *
 	 * @since 	1.4.0
 	 * @param 	array 	$plugin_meta
@@ -298,7 +327,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * adds 'Eventos' submenu to Triibo Services main menu
+	 * adds 'Eventos' submenu to Triibo Services main menu.
 	 *
 	 * @since 	1.0.0
 	 * @return 	void
@@ -316,7 +345,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Template for submenu
+	 * Template for submenu.
 	 *
 	 * @since 	1.0.0
 	 * @return 	void
@@ -327,7 +356,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Link to plugin settings
+	 * Link to plugin settings.
 	 *
 	 * @since 	1.0.0
 	 * @return 	void
@@ -342,7 +371,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Add this plugin's dependency in the Triibo Api Services settings
+	 * Add this plugin's dependency in the Triibo Api Services settings.
 	 *
 	 * @since 	1.0.0
 	 * @return 	void
@@ -353,9 +382,9 @@ class Triibo_Events
 	}
 
 	/**
-	 * Valid if is a sub-order and sends event for Triibo
+	 * Valid if is a sub-order and sends event for Triibo.
 	 *
-	 * @since 	1.1.0 	Rebuilt method to work with different statuses
+	 * @since 	1.1.0 	Rebuilt method to work with different statuses.
 	 * @since 	1.0.0
 	 * @return 	void
 	 */
@@ -371,34 +400,34 @@ class Triibo_Events
 		$triibo_phone   = $triibo_phone ?: get_user_meta( $user_id, "triiboId_phone", true );
 		$triibo_phone   = preg_replace( "/\D/", "", $triibo_phone );
 
-		/**
-		 * Verificação se o evento Compra_Marketplace já foi executado
-		 * @since 	1.0.3
-		 */
-		$has_cp  = get_user_meta( $user_id, "has_cp_{$order_id}", true );
-
-		/**
-		 * Verificação se o evento Assinatura_Triibo_Vip já foi executado
-		 * @since 	1.1.0
-		 */
-		$has_atv = get_user_meta( $user_id, "has_atv_{$order_id}", true );
-
 		if ( $original_order )
 		{
 			if ( !empty( $triibo_phone ) )
 			{
-				// assinatura
+				/**
+				 * Checking whether the Compra_Marketplace event has already been executed.
+				 * @since 	1.0.3
+				 */
+				$has_cp = get_user_meta( $user_id, "has_cp_{$order_id}", true );
+
+				// Subscription.
 				if ( $is_processing && wcs_order_contains_subscription( $order_id ) )
 				{
 					foreach ( $order->get_items() as $item_id => $item )
 					{
-						// Triibo VIP
+						// Triibo VIP.
 						if ( isset( self::PLANS[ $this->env ][ $item->get_product_id() ] ) )
 						{
+							/**
+							 * Checking if the Assinatura_Triibo_Vip event has already been executed.
+							 * @since 	1.1.0
+							 */
+							$has_atv = get_user_meta( $user_id, "has_atv_{$order_id}", true );
+
 							if ( empty( $has_cp ) )
 							{
 								/**
-								 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
 								 * @since 	1.3.2
 								 */
 								$response = $this->compra_marketplace( $order, $triibo_phone, $total );
@@ -416,7 +445,7 @@ class Triibo_Events
 								$event = self::PLANS[ $this->env ][ $item->get_product_id() ];
 
 								/**
-								 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
 								 * @since 	1.3.2
 								 */
 								$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
@@ -439,16 +468,49 @@ class Triibo_Events
 							$order->save();
 							break;
 						}
+
+						// Seu Clube.
+						if ( isset( self::SEU_CLUBE[ $this->env ][ $item->get_product_id() ] ) )
+						{
+							/**
+							 * Checking if the Seu_Clube event has already been executed.
+							 * @since 	1.8.0
+							 */
+							$has_seu_clube = get_user_meta( $user_id, "has_seu_clube_{$order_id}", true );
+
+							if ( $has_seu_clube )
+							{
+								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
+								break;
+							}
+
+							$product_id = $item->get_product_id();
+
+							$token      = $this->api_node->get_token( $user_id );
+
+							if ( is_null( $token ) )
+							{
+								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
+								break;
+							}
+
+							add_user_meta( $user_id, "has_seu_clube_{$order_id}", true, true );
+
+							$this->add_user_subscription( $user_id, $order, $product_id, $token );
+
+							$order->save();
+							break;
+						}
 					}
 				}
 
-				// compra normal
+				// Normal purchase.
 				if ( $is_completed && !wcs_order_contains_subscription( $order_id ) )
 				{
 					if ( empty( $has_cp ) )
 					{
 						/**
-						 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+						 * Receives response from the API, if successful, adds the metadata to not execute the event again.
 						 * @since 	1.3.2
 						 */
 						$response = $this->compra_marketplace( $order, $triibo_phone, $total );
@@ -472,8 +534,8 @@ class Triibo_Events
 	}
 
 	/**
-	 * Triggered events when subscription renewal payment is confirmed
-	 * Similar to order_status_change()
+	 * Triggered events when subscription renewal payment is confirmed.
+	 * Similar to order_status_change().
 	 *
 	 * @since 	1.2.0
 	 * @return 	void
@@ -505,7 +567,7 @@ class Triibo_Events
 						if ( empty( $has_cp ) )
 						{
 							/**
-							 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+							 * Receives response from the API, if successful, adds the metadata to not execute the event again.
 							 * @since 	1.3.2
 							 */
 							$response = $this->compra_marketplace( $order, $triibo_phone, $total );
@@ -523,7 +585,7 @@ class Triibo_Events
 							$event    = self::PLANS[ $this->env ][ $item->get_product_id() ];
 
 							/**
-							 * Recebe retorno da API, caso sucesso, adiciona o metadata para não executar o evento novamente
+							 * Receives response from the API, if successful, adds the metadata to not execute the event again.
 							 * @since 	1.3.2
 							 */
 							$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
@@ -549,9 +611,9 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call event Compra_Marketplace
+	 * Call event Compra_Marketplace.
 	 *
-	 * @since 	1.3.2 	Added return value
+	 * @since 	1.3.2 	Added return value.
 	 * @since 	1.1.0
 	 * @return 	array
 	 */
@@ -563,10 +625,10 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3
+	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3.
 	 *
-	 * @since 	1.3.2 	Added return value
-	 * @since 	1.3.0 	Added parameter $event
+	 * @since 	1.3.2 	Added return value.
+	 * @since 	1.3.0 	Added parameter $event.
 	 * @since 	1.1.0
 	 * @return 	array
 	 */
@@ -576,7 +638,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Add note to order
+	 * Add note to order.
 	 *
 	 * @since 	1.0.4
 	 * @return 	void
@@ -607,7 +669,7 @@ class Triibo_Events
 	}
 
     /**
-     * Register log
+     * Register log.
      *
 	 * @since 	1.0.0
      * @param 	string $data
@@ -619,9 +681,9 @@ class Triibo_Events
     }
 
 	/**
-	 * Update user orgs
+	 * Update user orgs.
 	 *
-	 * @since 	1.5.2 	Added $order and $event parameters
+	 * @since 	1.5.2 	Added $order and $event parameters.
 	 * @since 	1.5.0
 	 * @return 	void
 	 */
@@ -639,8 +701,8 @@ class Triibo_Events
 		$uid      = get_user_meta( $user_id, "_triibo_id", true );
 
 		/**
-		 * Add org to user
-		 * Triibo VIP
+		 * Add org to user.
+		 * Triibo VIP.
 		 */
 		$response = $this->api->add_org( $uid, $id_add );
 
@@ -659,8 +721,8 @@ class Triibo_Events
 		$note    .= "\n\nOrganização ($name_add) adicionada com sucesso";
 
 		/**
-		 * Remove org from user
-		 * Triibo
+		 * Remove org from user.
+		 * Triibo.
 		 */
 		$response = $this->api->del_org( $uid, $id_del );
 
@@ -677,6 +739,45 @@ class Triibo_Events
 		}
 
 		$note    .= "\n\nOrganização ($name_del) removida com sucesso";
+		$note    .= "\n\nConta: {$uid}";
+
+		$order->add_order_note( $note );
+	}
+
+	/**
+	 * Undocumented function
+	 *
+	 * @since 	1.8.0
+	 * @return 	void
+	 */
+	public function add_user_subscription( $user_id, &$order, $product_id, $token )
+	{
+		$note     = "Evento: Assinatura Seu Clube";
+
+		$uid      = get_user_meta( $user_id, "_triibo_id", true );
+
+		$params   = [
+			"product_id" => $product_id,
+			"uid"        => $uid
+		];
+
+		$response = $this->api_node->add_subscription( $token, $params );
+
+		$this->log( print_r( $response, true ) );
+
+		if ( !$response[ "success" ] )
+		{
+			// $this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+
+			$note .= "\n\nFalha ao adicionar Assinatura Seu Clube ao usuário";
+			$note .= "\n\nConta: {$uid}\nErro: API";
+
+			$order->add_order_note( $note );
+
+			return;
+		}
+
+		$note    .= "\n\nAssinatura Seu Clube adicionada com sucesso";
 		$note    .= "\n\nConta: {$uid}";
 
 		$order->add_order_note( $note );
