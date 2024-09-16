@@ -172,6 +172,7 @@ class Triibo_Events
 			add_action( "admin_menu",                          [ $this, "add_submenu_page"    ], 11    );
 			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
 			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
+			add_action( "triibo_api_service_list_plugin_node", [ $this, "add_info_dependency" ]        );
 
 			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
 			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
@@ -180,14 +181,14 @@ class Triibo_Events
 			$this->api      = new Triibo_Api_Gateway();
 
 			/**
-			 * @since 1.8.0
-			 */
-			$this->api_node = new Triibo_Api_Node();
-
-			/**
 			 * @since 1.5.0
 			 */
 			$this->env      = $this->get_env();
+
+			/**
+			 * @since 1.8.0
+			 */
+			$this->api_node = new Triibo_Api_Node();
 		}
 		else
 		{
