@@ -1,6 +1,10 @@
 == Changelog ==
 
-= 1.8.0 - 2024/06/27 =
+= 1.9.0 - 2024/09/16 =
+
+- Atualização do formato dos logs para o novo padrão do WooCommerce
+
+= 1.8.0 - 2024/09/13 =
 
 - Adicionada Triibo API Node
 - Adicionado eventos Assinatura Seu Clube

@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.8.0
+ * Version: 				1.9.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -13,7 +13,7 @@
  * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.8.0
+ * @version 	1.9.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -27,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.8.0";
+	const VERSION = "1.9.0";
 
 	/**
 	 * Plugin domain.
@@ -222,7 +222,7 @@ class Triibo_Events
 		 * Added event field to log.
 		 * @since 	1.2.0
 		 */
-		$this->log( json_encode( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ] ) );
+		$this->log( "info", print_r( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ], true ) );
 		$this->add_note( $order, $triibo_id, $event, $response );
 
 		return $response;
@@ -433,7 +433,7 @@ class Triibo_Events
 							}
 							else
 							{
-								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+								$this->log( "info", "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
 							}
 
 							if ( empty( $has_atv ) )
@@ -458,7 +458,7 @@ class Triibo_Events
 							}
 							else
 							{
-								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
 							}
 
 							$order->save();
@@ -476,7 +476,7 @@ class Triibo_Events
 
 							if ( $has_seu_clube )
 							{
-								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
+								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
 								break;
 							}
 
@@ -486,7 +486,7 @@ class Triibo_Events
 
 							if ( is_null( $token ) )
 							{
-								$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
+								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
 								break;
 							}
 
@@ -518,13 +518,13 @@ class Triibo_Events
 					}
 					else
 					{
-						$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+						$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
 					}
 				}
 			}
 			else
 			{
-				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+				$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
 	}
@@ -573,7 +573,7 @@ class Triibo_Events
 						}
 						else
 						{
-							$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+							$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
 						}
 
 						if ( empty( $has_atv ) )
@@ -591,7 +591,7 @@ class Triibo_Events
 						}
 						else
 						{
-							$this->log( "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+							$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
 						}
 
 						$order->save();
@@ -601,7 +601,7 @@ class Triibo_Events
 			}
 			else
 			{
-				$this->log( "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+				$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
 	}
@@ -665,16 +665,26 @@ class Triibo_Events
 	}
 
     /**
-     * Register log.
-     *
+	 * Register logs.
+	 *
+	 * @since 	1.9.0 	Changing to the new woocommerce standard.
+	 * 					Added params $level and $error.
+	 * 					Renamed param $data to $message.
 	 * @since 	1.0.0
-     * @param 	string $data
+	 * @param 	string 	$level
+	 * @param 	string 	$message
+	 * @param 	bool 	$is_error
 	 * @return 	void
      */
-    public function log( string $data )
-    {
-        $this->log->add( self::DOMAIN, $data );
-    }
+    public function log( string $level, string $message, bool $is_error = false )
+	{
+		$logger  = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
+
+		$context = [ "source" => self::DOMAIN ];
+
+		if ( $is_error || $this->get_env === "hml" )
+			$logger->$level( $message, $context );
+	}
 
 	/**
 	 * Update user orgs.
@@ -704,7 +714,7 @@ class Triibo_Events
 
 		if ( !$response[ "success" ] )
 		{
-			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
 
 			$note .= "\n\nFalha ao adicionar organização ({$name_add}) ao usuário";
 			$note .= "\n\nConta: {$uid}\nErro: API";
@@ -724,7 +734,7 @@ class Triibo_Events
 
 		if ( !$response[ "success" ] )
 		{
-			$this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
 
 			$note .= "\n\nFalha ao remover organização ({$name_del}) do usuário";
 			$note .= "\n\nConta: {$uid}\nErro: API";
@@ -759,11 +769,9 @@ class Triibo_Events
 
 		$response = $this->api_node->add_subscription( $token, $params );
 
-		$this->log( print_r( $response, true ) );
-
 		if ( !$response[ "success" ] )
 		{
-			// $this->log( json_encode( [ "uid" => $uid, "response" => $response ] ) );
+			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
 
 			$note .= "\n\nFalha ao adicionar Assinatura Seu Clube ao usuário";
 			$note .= "\n\nConta: {$uid}\nErro: API";
