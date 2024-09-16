@@ -99,13 +99,9 @@ class Triibo_Events
 	 */
 	const SEU_CLUBE = [
 		"hml" => [
-			123123, // teste
-			321321  // teste
+			114308, // assinatura teste
 		],
-		"prd" => [
-			456456, // teste
-			654654, // teste
-		],
+		"prd" => [],
 	];
 
 	/**
@@ -470,7 +466,7 @@ class Triibo_Events
 						}
 
 						// Seu Clube.
-						if ( isset( self::SEU_CLUBE[ $this->env ][ $item->get_product_id() ] ) )
+						if ( in_array( $item->get_product_id(), self::SEU_CLUBE[ $this->env ] ) )
 						{
 							/**
 							 * Checking if the Seu_Clube event has already been executed.
@@ -757,8 +753,8 @@ class Triibo_Events
 		$uid      = get_user_meta( $user_id, "_triibo_id", true );
 
 		$params   = [
-			"product_id" => $product_id,
-			"uid"        => $uid
+			"productId" => ( string ) $product_id,
+			"uid"       => $uid
 		];
 
 		$response = $this->api_node->add_subscription( $token, $params );
