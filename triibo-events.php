@@ -174,8 +174,9 @@ class Triibo_Events
 			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
 			add_action( "triibo_api_service_list_plugin_node", [ $this, "add_info_dependency" ]        );
 
-			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
-			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
+			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"           ], 10, 4 );
+			add_action( "woocommerce_subscription_status_cancelled",         [ $this, "subscription_status_cancelled" ], 10, 1 );
+			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal"          ], 10, 2 );
 
 			$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api      = new Triibo_Api_Gateway();
@@ -412,8 +413,10 @@ class Triibo_Events
 				{
 					foreach ( $order->get_items() as $item_id => $item )
 					{
+						$product_id = $item->get_product_id();
+
 						// Triibo VIP.
-						if ( isset( self::PLANS[ $this->env ][ $item->get_product_id() ] ) )
+						if ( isset( self::PLANS[ $this->env ][ $product_id ] ) )
 						{
 							/**
 							 * Checking if the Assinatura_Triibo_Vip event has already been executed.
@@ -434,12 +437,12 @@ class Triibo_Events
 							}
 							else
 							{
-								$this->log( "info", "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
 							}
 
 							if ( empty( $has_atv ) )
 							{
-								$event = self::PLANS[ $this->env ][ $item->get_product_id() ];
+								$event = self::PLANS[ $this->env ][ $product_id ];
 
 								/**
 								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
@@ -467,7 +470,7 @@ class Triibo_Events
 						}
 
 						// Seu Clube.
-						if ( in_array( $item->get_product_id(), self::SEU_CLUBE[ $this->env ] ) )
+						if ( in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
 						{
 							/**
 							 * Checking if the Seu_Clube event has already been executed.
@@ -480,8 +483,6 @@ class Triibo_Events
 								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
 								break;
 							}
-
-							$product_id = $item->get_product_id();
 
 							$token      = $this->api_node->get_token( $user_id );
 
@@ -528,6 +529,47 @@ class Triibo_Events
 				$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
 			}
 		}
+	}
+
+	/**
+	 * Process subscription cancellation.
+	 *
+	 * @since 	1.8.0
+	 * @param 	object 	$subscription
+	 * @return 	void
+	 */
+	public function subscription_status_cancelled( $subscription )
+	{
+		$subscription_id = $subscription->get_id();
+
+		$user_id         = $subscription->get_user_id();
+		$triibo_phone    = get_user_meta( $user_id, "_triibo_phone", true );
+		$triibo_phone    = $triibo_phone ?: get_user_meta( $user_id, "triiboId_phone", true );
+		$triibo_phone    = preg_replace( "/\D/", "", $triibo_phone );
+
+		foreach ( $subscription->get_items() as $item_id => $item )
+		{
+			$product_id = $item->get_product_id();
+
+			// Seu Clube.
+			if ( in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
+			{
+				$token = $this->api_node->get_token( $user_id );
+
+				if ( is_null( $token ) )
+				{
+					$this->log( "info", "Subscription: #{$subscription_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
+					break;
+				}
+
+				$this->del_user_subscription( $user_id, $subscription, $product_id, $token );
+
+				$subscription->save();
+				break;
+			}
+		}
+
+		$this->log( "error", "#{$subscription_id} | ? | cancelled", true );
 	}
 
 	/**
@@ -752,7 +794,7 @@ class Triibo_Events
 	}
 
 	/**
-	 * Undocumented function
+	 * Add user subscription Seu Clube.
 	 *
 	 * @since 	1.8.0
 	 * @return 	void
@@ -786,6 +828,43 @@ class Triibo_Events
 		$note    .= "\n\nConta: {$uid}";
 
 		$order->add_order_note( $note );
+	}
+
+	/**
+	 * Delete user subscription Seu Clube.
+	 *
+	 * @since 	1.8.0
+	 * @return 	void
+	 */
+	public function del_user_subscription( $user_id, &$subscription, $product_id, $token )
+	{
+		$note     = "Evento: Assinatura Seu Clube";
+
+		$uid      = get_user_meta( $user_id, "_triibo_id", true );
+
+		$params   = [
+			"productId" => ( string ) $product_id,
+			"uid"       => $uid
+		];
+
+		$response = $this->api_node->del_subscription( $token, $params );
+
+		if ( !$response[ "success" ] )
+		{
+			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
+
+			$note .= "\n\nFalha ao cancelar Assinatura Seu Clube do usuário";
+			$note .= "\n\nConta: {$uid}\nErro: API";
+
+			$subscription->add_order_note( $note );
+
+			return;
+		}
+
+		$note    .= "\n\nAssinatura Seu Clube cancelada com sucesso";
+		$note    .= "\n\nConta: {$uid}";
+
+		$subscription->add_order_note( $note );
 	}
 }
 
