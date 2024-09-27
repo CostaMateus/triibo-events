@@ -101,7 +101,10 @@ class Triibo_Events
 		"hml" => [
 			114308, // assinatura teste
 		],
-		"prd" => [],
+		"prd" => [
+			986463, // Club do Golfista
+			986464, // Morro Experience
+		],
 	];
 
 	/**
@@ -488,7 +491,7 @@ class Triibo_Events
 
 							if ( is_null( $token ) )
 							{
-								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
+								$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token", true );
 								break;
 							}
 
@@ -541,15 +544,13 @@ class Triibo_Events
 	public function subscription_status_cancelled( $subscription )
 	{
 		$subscription_id = $subscription->get_id();
-
 		$user_id         = $subscription->get_user_id();
-		$triibo_phone    = get_user_meta( $user_id, "_triibo_phone", true );
-		$triibo_phone    = $triibo_phone ?: get_user_meta( $user_id, "triiboId_phone", true );
-		$triibo_phone    = preg_replace( "/\D/", "", $triibo_phone );
 
 		foreach ( $subscription->get_items() as $item_id => $item )
 		{
 			$product_id = $item->get_product_id();
+
+			$this->log( "info", "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
 
 			// Seu Clube.
 			if ( in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
@@ -558,7 +559,7 @@ class Triibo_Events
 
 				if ( is_null( $token ) )
 				{
-					$this->log( "info", "Subscription: #{$subscription_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token" );
+					$this->log( "error", "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token", true );
 					break;
 				}
 
@@ -568,8 +569,6 @@ class Triibo_Events
 				break;
 			}
 		}
-
-		$this->log( "error", "#{$subscription_id} | ? | cancelled", true );
 	}
 
 	/**
