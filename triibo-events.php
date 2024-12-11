@@ -102,8 +102,11 @@ class Triibo_Events
 			114308, // assinatura teste
 		],
 		"prd" => [
-			986463, // Club do Golfista
-			986464, // Morro Experience
+			986463,  // Club do Golfista
+			986464,  // Morro Experience
+			987475,  // Projeto Pedalar
+			1022143, // Conexão Feminina - mensal
+			// 1022146, // Conexão Feminina - anual
 		],
 	];
 
