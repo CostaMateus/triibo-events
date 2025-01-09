@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.9.0
+ * Version: 				1.10.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -13,7 +13,7 @@
  * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.9.0
+ * @version 	1.10.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -27,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.9.0";
+	const VERSION = "1.10.0";
 
 	/**
 	 * Plugin domain.
@@ -57,7 +57,7 @@ class Triibo_Events
 			957855 => "Assinatura_Triibo_Vip_Plano_3", // product_id => event_ATV Plano 3
 
 			// New plans
-			981120 => "Assinatura_Triibo_Vip_Plano_4",
+			981120 => "Assinatura_Triibo_Vip_Plano_4", // Also trigger 'SEU_CLUBE'
 			981121 => "Assinatura_Triibo_Vip_Plano_5",
 			981122 => "Assinatura_Triibo_Vip_Plano_6",
 		]
@@ -94,6 +94,7 @@ class Triibo_Events
 	];
 
 	/**
+	 * @since 	1.10.0 	Added product 981120.
 	 * @since 	1.8.0
 	 * @var 	array
 	 */
@@ -102,6 +103,7 @@ class Triibo_Events
 			114308, // assinatura teste
 		],
 		"prd" => [
+			981120,  // Assinatura_Triibo_Vip_Plano_4 // Also trigger 'PLANS'
 			986463,  // Club do Golfista
 			986464,  // Morro Experience
 			987475,  // Projeto Pedalar
@@ -471,8 +473,16 @@ class Triibo_Events
 								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
 							}
 
-							$order->save();
-							break;
+							/**
+							 * Check if it is not 'Seu Clube' as well.
+							 * Triibo Vip, started to trigger the 'Seu_Clube' event.
+							 * @since 	1.10.0
+							 */
+							if ( !in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
+							{
+								$order->save();
+								break;
+							}
 						}
 
 						// Seu Clube.
