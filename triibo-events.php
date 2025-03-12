@@ -683,7 +683,7 @@ class Triibo_Events
 	 * @since 	1.1.0
 	 * @return 	array
 	 */
-	public function assinatura_tribo_vip( &$order, $triibo_id, $total = 1, $event )
+	public function assinatura_tribo_vip( &$order, $triibo_id, $total, $event )
 	{
 		return $this->call_event( $event, $order, $triibo_id, $total );
 	}
