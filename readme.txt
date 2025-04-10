@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 1.10.1 - 2025/04/10 =
+
+- Ajuste log de erros.
+
 = 1.10.0 - 2025/01/09 =
 
 - Triibo Vip dispara evento de 'assinatura' e 'seu_clube'.

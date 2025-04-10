@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.10.0
+ * Version: 				1.10.1
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -13,7 +13,7 @@
  * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.10.0
+ * @version 	1.10.1
  */
 defined( "ABSPATH" ) || exit;
 
@@ -27,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.10.0";
+	const VERSION = "1.10.1";
 
 	/**
 	 * Plugin domain.
@@ -722,6 +722,7 @@ class Triibo_Events
     /**
 	 * Register logs.
 	 *
+	 * @since 	1.10.1 	Fix log.
 	 * @since 	1.9.0 	Changing to the new woocommerce standard.
 	 * 					Added params $level and $error.
 	 * 					Renamed param $data to $message.
@@ -737,7 +738,7 @@ class Triibo_Events
 
 		$context = [ "source" => self::DOMAIN ];
 
-		if ( $is_error || $this->get_env === "hml" )
+		if ( $is_error || $this->get_env() === "hml" )
 			$logger->$level( $message, $context );
 	}
 
