@@ -5,7 +5,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.10.1
+ * Version: 				1.11.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -13,7 +13,7 @@
  * WC tested up to: 		8.2
  *
  * @package 	Triibo_Events
- * @version 	1.10.1
+ * @version 	1.11.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -27,7 +27,7 @@ class Triibo_Events
 	 * @since 	1.0.0
 	 * @var 	string
 	 */
-	const VERSION = "1.10.1";
+	const VERSION = "1.11.0";
 
 	/**
 	 * Plugin domain.
@@ -103,10 +103,10 @@ class Triibo_Events
 			114308, // assinatura teste
 		],
 		"prd" => [
-			981120,  // Assinatura_Triibo_Vip_Plano_4 // Also trigger 'PLANS'
-			986463,  // Club do Golfista
-			986464,  // Morro Experience
-			987475,  // Projeto Pedalar
+			981120, // Assinatura_Triibo_Vip_Plano_4 // Also trigger 'PLANS'
+			986463, // Club do Golfista
+			986464, // Morro Experience
+			987475, // Projeto Pedalar
 			1022143, // Conexão Feminina - mensal
 			// 1022146, // Conexão Feminina - anual
 		],
@@ -182,9 +182,14 @@ class Triibo_Events
 			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
 			add_action( "triibo_api_service_list_plugin_node", [ $this, "add_info_dependency" ]        );
 
-			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"           ], 10, 4 );
-			add_action( "woocommerce_subscription_status_cancelled",         [ $this, "subscription_status_cancelled" ], 10, 1 );
-			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal"          ], 10, 2 );
+			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
+			add_action( "woocommerce_subscription_status_cancelled",         [ $this, "subscription_ended"   ], 10, 1 );
+			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
+
+			/**
+			 * @since 1.11.0
+			 */
+			add_action( "woocommerce_subscription_status_expired",           [ $this, "subscription_ended"   ], 10, 1 );
 
 			$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api      = new Triibo_Api_Gateway();
@@ -548,13 +553,14 @@ class Triibo_Events
 	}
 
 	/**
-	 * Process subscription cancellation.
+	 * Process subscription cancellation/expiration.
 	 *
+	 * @since 	1.11.0 Renamed to `subscription_ended` from `subscription_status_cancelled`
 	 * @since 	1.8.0
 	 * @param 	object 	$subscription
 	 * @return 	void
 	 */
-	public function subscription_status_cancelled( $subscription )
+	public function subscription_ended( $subscription )
 	{
 		$subscription_id = $subscription->get_id();
 		$user_id         = $subscription->get_user_id();
