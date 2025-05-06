@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 1.11.0 - 2025/05/06 =
+
+- Adicionado disparado de evento de assinatura expirada.
+
 = 1.10.1 - 2025/04/10 =
 
 - Ajuste log de erros.
@@ -23,11 +27,11 @@
 
 = 1.6.0 - 2024/05/29 =
 
-- Adiciona três eventos de assinatura Triibo VIP
+- Adicionado três eventos de assinatura Triibo VIP
 
 = 1.5.2 - 2023/11/07 =
 
-- Adiciona nota ao pedido quando evento que muda as orgs do usuário for disparado
+- Adicionado nota ao pedido quando evento que muda as orgs do usuário for disparado
 
 = 1.5.1 - 2023/10/10 =
 
