@@ -407,8 +407,252 @@ class Triibo_Events
 	}
 
 	/**
+	 * Check if the order is an original order.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param object 	$order
+	 *
+	 * @return boolean
+	 */
+	private function is_original_order( $order ) : bool
+	{
+		return $order->get_parent_id() == 0;
+	}
+
+	/**
+	 * Get user phone number.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 	$user_id
+	 *
+	 * @return string
+	 */
+	private function get_user_phone( $user_id ) : string
+	{
+		$triibo_phone = get_user_meta( $user_id, "_triibo_phone", true );
+
+		if ( empty( $triibo_phone ) )
+			$triibo_phone = get_user_meta( $user_id, "triiboId_phone", true );
+
+		return preg_replace( "/\D/", "", $triibo_phone );
+	}
+
+	/**
+	 * Log user without account.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int $order_id
+	 * @param int $user_id
+	 *
+	 * @return void
+	 */
+	private function log_user_without_account( $order_id, $user_id ) : void
+	{
+		$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+	}
+
+	/**
+	 * Check if the order is a processing subscription.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$order_id
+	 * @param string 	$new_status
+	 *
+	 * @return boolean
+	 */
+	private function is_processing_subscription( $order_id, $new_status ) : bool
+	{
+		return $new_status === "processing" && wcs_order_contains_subscription( $order_id );
+	}
+
+	/**
+	 * Check if the order is a completed purchase.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$order_id
+	 * @param string 	$new_status
+	 *
+	 * @return boolean
+	 */
+	private function is_completed_purchase( $order_id, $new_status ) : bool
+	{
+		return $new_status === "completed" && !wcs_order_contains_subscription( $order_id );
+	}
+
+	/**
+	 * Check if the user has already executed the event.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$user_id
+	 * @param string 	$meta_key
+	 *
+	 * @return boolean
+	 */
+	private function has_already_executed_event( $user_id, $meta_key ) : bool
+	{
+		return !empty( get_user_meta( $user_id, $meta_key, true ) );
+	}
+
+	/**
+	 * Mark the event as executed.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$user_id
+	 * @param string 	$meta_key
+	 *
+	 * @return void
+	 */
+	private function mark_event_executed( $user_id, $meta_key ) : void
+	{
+		add_user_meta( $user_id, $meta_key, true, true );
+	}
+
+	/**
+	 * Process VIP event.
+	 *
+	 * @param object 	$order
+	 * @param int 		$user_id
+	 * @param int 		$order_id
+	 * @param string 	$triibo_phone
+	 * @param float 	$total
+	 *
+	 * @return void
+	 */
+	private function process_vip_event( $order, $user_id, $order_id, $triibo_phone, $total ) : void
+	{
+		foreach ( $order->get_items() as $item )
+		{
+			$product_id = $item->get_product_id();
+
+			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
+			{
+				$has_cp  = $this->has_already_executed_event( $user_id, "has_cp_{$order_id}"  );
+				$has_atv = $this->has_already_executed_event( $user_id, "has_atv_{$order_id}" );
+
+				if ( !$has_cp )
+				{
+					$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+
+					if ( $response[ "success" ] )
+						$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
+				}
+				else
+				{
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+				}
+
+				if ( !$has_atv )
+				{
+					$event    = self::PLANS[ $this->get_env() ][ $product_id ];
+					$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
+
+					if ( $response[ "success" ] )
+					{
+						$this->mark_event_executed( $user_id, "has_atv_{$order_id}" );
+						$this->update_user_orgs( $user_id, $order, $event );
+					}
+				}
+				else
+				{
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+				}
+
+				if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+				{
+					$order->save();
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Process Seu Clube event.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param object 	$order
+	 * @param int 		$user_id
+	 * @param int 		$order_id
+	 * @param string 	$triibo_phone
+	 *
+	 * @return void
+	 */
+	private function process_seu_clube_event( $order, $user_id, $order_id, $triibo_phone ) : void
+	{
+		foreach ( $order->get_items() as $item )
+		{
+			$product_id = $item->get_product_id();
+
+			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+			{
+				$has_seu_clube = $this->has_already_executed_event( $user_id, "has_seu_clube_{$order_id}" );
+
+				if ( $has_seu_clube )
+				{
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
+					break;
+				}
+
+				$token = $this->api_node->get_token( user_id: $user_id );
+
+				if ( is_null( $token ) )
+				{
+					$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token", true );
+					break;
+				}
+
+				$this->mark_event_executed( $user_id, "has_seu_clube_{$order_id}" );
+				$this->add_user_subscription( $user_id, $order, $product_id, $token );
+
+				$order->save();
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Process normal purchase events.
+	 *
+	 * #since 1.13.0
+	 *
+	 * @param object 	$order
+	 * @param int 		$user_id
+	 * @param int 		$order_id
+	 * @param string 	$triibo_phone
+	 * @param float 	$total
+	 *
+	 * @return void
+	 */
+	private function process_normal_purchase( $order, $user_id, $order_id, $triibo_phone, $total ) : void
+	{
+		$has_cp = $this->has_already_executed_event( $user_id, "has_cp_{$order_id}" );
+
+		if ( $has_cp )
+		{
+			$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+			return;
+		}
+
+		$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+
+		if ( $response[ "success" ] )
+			$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
+
+		$order->save();
+	}
+
+	/**
 	 * Valid if is a sub-order and sends event for Triibo.
 	 *
+	 * @since 1.13.0 	Refactored to use new methods
 	 * @since 1.1.0 	Rebuilt method to work with different statuses
 	 * @since 1.0.0
 	 *
@@ -416,154 +660,26 @@ class Triibo_Events
 	 */
 	public function order_status_change( $order_id, $old_status, $new_status, $order ) : void
 	{
-		$total          = $order->get_total();
-		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
-		$is_processing  = ( $new_status == "processing"  ) ? true : false;
-		$is_completed   = ( $new_status == "completed"   ) ? true : false;
+		if ( ! $this->is_original_order( $order ) )
+			return;
 
-		$user_id        = $order->get_user_id();
-		$triibo_phone   = get_user_meta( $user_id, "_triibo_phone", true );
-		$triibo_phone   = $triibo_phone ?: get_user_meta( $user_id, "triiboId_phone", true );
-		$triibo_phone   = preg_replace( "/\D/", "", $triibo_phone );
+		$user_id      = $order->get_user_id();
+		$triibo_phone = $this->get_user_phone( $user_id );
 
-		if ( $original_order )
+		if ( empty( $triibo_phone ) )
 		{
-			if ( !empty( $triibo_phone ) )
-			{
-				/**
-				 * Checking whether the Compra_Marketplace event has already been executed.
-				 * @since 	1.0.3
-				 */
-				$has_cp = get_user_meta( $user_id, "has_cp_{$order_id}", true );
+			$this->log_user_without_account( $order_id, $user_id );
+			return;
+		}
 
-				// Subscription.
-				if ( $is_processing && wcs_order_contains_subscription( $order_id ) )
-				{
-					foreach ( $order->get_items() as $item_id => $item )
-					{
-						$product_id = $item->get_product_id();
-
-						// Triibo VIP.
-						if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
-						{
-							/**
-							 * Checking if the Assinatura_Triibo_Vip event has already been executed.
-							 * @since 	1.1.0
-							 */
-							$has_atv = get_user_meta( $user_id, "has_atv_{$order_id}", true );
-
-							if ( empty( $has_cp ) )
-							{
-								/**
-								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
-								 * @since 	1.3.2
-								 */
-								$response = $this->compra_marketplace( $order, $triibo_phone, $total );
-
-								if ( $response[ "success" ] )
-									add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
-							}
-							else
-							{
-								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
-							}
-
-							if ( empty( $has_atv ) )
-							{
-								$event = self::PLANS[ $this->get_env() ][ $product_id ];
-
-								/**
-								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
-								 * @since 	1.3.2
-								 */
-								$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
-
-								if ( $response[ "success" ] )
-								{
-									add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
-
-									/**
-									 * @since 1.5.0
-									 */
-									$this->update_user_orgs( $user_id, $order, $event );
-								}
-							}
-							else
-							{
-								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
-							}
-
-							/**
-							 * Check if it is not 'Seu Clube' as well.
-							 * Triibo Vip, started to trigger the 'Seu_Clube' event.
-							 * @since 	1.10.0
-							 */
-							if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
-							{
-								$order->save();
-								break;
-							}
-						}
-
-						// Seu Clube.
-						if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
-						{
-							/**
-							 * Checking if the Seu_Clube event has already been executed.
-							 * @since 	1.8.0
-							 */
-							$has_seu_clube = get_user_meta( $user_id, "has_seu_clube_{$order_id}", true );
-
-							if ( $has_seu_clube )
-							{
-								$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
-								break;
-							}
-
-							$token      = $this->api_node->get_token( user_id: $user_id );
-
-							if ( is_null( $token ) )
-							{
-								$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token", true );
-								break;
-							}
-
-							add_user_meta( $user_id, "has_seu_clube_{$order_id}", true, true );
-
-							$this->add_user_subscription( $user_id, $order, $product_id, $token );
-
-							$order->save();
-							break;
-						}
-					}
-				}
-
-				// Normal purchase.
-				if ( $is_completed && !wcs_order_contains_subscription( $order_id ) )
-				{
-					if ( empty( $has_cp ) )
-					{
-						/**
-						 * Receives response from the API, if successful, adds the metadata to not execute the event again.
-						 * @since 	1.3.2
-						 */
-						$response = $this->compra_marketplace( $order, $triibo_phone, $total );
-
-						if ( $response[ "success" ] )
-							add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
-
-						$order->save();
-					}
-					else
-					{
-						$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
-					}
-				}
-			}
-			else
-			{
-				$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
-			}
+		if ( $this->is_processing_subscription( $order_id, $new_status ) )
+		{
+			$this->process_vip_event( $order, $user_id, $order_id, $triibo_phone, $order->get_total() );
+			$this->process_seu_clube_event( $order, $user_id, $order_id, $triibo_phone );
+		}
+		elseif ( $this->is_completed_purchase( $order_id, $new_status ) )
+		{
+			$this->process_normal_purchase( $order, $user_id, $order_id, $triibo_phone, $order->get_total() );
 		}
 	}
 
