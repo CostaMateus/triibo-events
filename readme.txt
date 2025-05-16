@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 1.12.0 - 2025/05/15 =
+
+- Adicionado método que retorna lista de eventos disponíveis.
+
 = 1.11.0 - 2025/05/06 =
 
 - Adicionado disparado de evento de assinatura expirada.
