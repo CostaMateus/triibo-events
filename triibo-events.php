@@ -1172,37 +1172,6 @@ class Triibo_Events
 		$order->add_order_note( note: $note );
 	}
 
-    /**
-	 * Register logs.
-	 *
-	 * @since 1.13.0 	Added parameter $context
-	 * @since 1.10.1 	Fix log
-	 * @since 1.9.0 	Changing to the new woocommerce standard
-	 * 					Added params $level and $error
-	 * 					Renamed param $data to $message
-	 * @since 1.0.0
-	 *
-     * @param string 	$level 		The log level (e.g., 'error', 'info')
-     * @param string 	$message 	The log message
-	 * @param array 	$context 	Additional context for the log message
-     * @param bool 		$is_error 	Whether the log is an error
-	 *
-	 * @return void
-     */
-    private function log( string $level = "info", string $message, array $context = [], bool $is_error = false ) : void
-	{
-		// Use WooCommerce logger if available
-        $logger  = function_exists( "wc_get_logger" )
-			? wc_get_logger()
-			: new WC_Logger();
-
-        $context = array_merge( $context, [ "source" => self::DOMAIN ] );
-
-        // Log only errors or if the environment is set to "on" (homologation)
-		if ( $is_error || $this->get_env() === "hml" )
-			$logger->$level( $message, $context );
-	}
-
 	/**
 	 * Log user without account.
 	 *
@@ -1309,86 +1278,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Add user subscription Seu Clube.
-	 *
-	 * @deprecated 1.13.0 	Use 'toggle_user_subscription()' instead
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	private function add_user_subscription( $user_id, &$order, $product_id, $token ) : void
-	{
-		$note     = "Evento: Assinatura Seu Clube";
-
-		$uid      = get_user_meta( $user_id, "_triibo_id", true );
-
-		$params   = [
-			"productId" => ( string ) $product_id,
-			"uid"       => $uid
-		];
-
-		$response = $this->api_node->add_subscription( token: $token, params: $params );
-
-		if ( !$response[ "success" ] )
-		{
-			// $this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
-
-			$note .= "\n\nFalha ao adicionar Assinatura Seu Clube ao usuário";
-			$note .= "\n\nConta: {$uid}\nErro: API";
-
-			$order->add_order_note( $note );
-
-			return;
-		}
-
-		$note    .= "\n\nAssinatura Seu Clube adicionada com sucesso";
-		$note    .= "\n\nConta: {$uid}";
-
-		$order->add_order_note( $note );
-	}
-
-	/**
-	 * Delete user subscription Seu Clube.
-	 *
-	 * @deprecated 1.13.0 	Use 'toggle_user_subscription()' instead
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	private function del_user_subscription( $user_id, &$subscription, $product_id, $token ) : void
-	{
-		$note     = "Evento: Assinatura Seu Clube";
-
-		$uid      = get_user_meta( $user_id, "_triibo_id", true );
-
-		$params   = [
-			"productId" => ( string ) $product_id,
-			"uid"       => $uid
-		];
-
-		$response = $this->api_node->del_subscription( token: $token, params: $params );
-
-		if ( !$response[ "success" ] )
-		{
-			// $this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
-
-			$note .= "\n\nFalha ao cancelar Assinatura Seu Clube do usuário";
-			$note .= "\n\nConta: {$uid}\nErro: API";
-
-			$subscription->add_order_note( $note );
-
-			return;
-		}
-
-		$note    .= "\n\nAssinatura Seu Clube cancelada com sucesso";
-		$note    .= "\n\nConta: {$uid}";
-
-		$subscription->add_order_note( $note );
-	}
-
-	/**
 	 * Add or delete user subscription Seu Clube.
 	 *
 	 * @since 1.13.0
@@ -1486,6 +1375,57 @@ class Triibo_Events
 				$events[] = $event;
 
 		return array_unique( $events );
+	}
+
+	/**
+	 * Register logs.
+	 *
+	 * @since 1.13.0 	Added parameter $context
+	 * @since 1.10.1 	Fix log
+	 * @since 1.9.0 	Changing to the new woocommerce standard
+	 * 					Added params $level and $error
+	 * 					Renamed param $data to $message
+	 * @since 1.0.0
+	 *
+	 * @param string 	$level 		The log level (e.g., 'error', 'info')
+	 * @param string 	$message 	The log message
+	 * @param array 	$context 	Additional context for the log message
+	 * @param bool 		$is_error 	Whether the log is an error
+	 *
+	 * @return void
+	 */
+	private function log( string $level = "info", string $message, array $context = [], bool $is_error = false ) : void
+	{
+		// Use WooCommerce logger if available
+		$logger  = function_exists( "wc_get_logger" ) ? wc_get_logger() : new WC_Logger();
+
+		$context = array_merge( $context, [ "source" => self::DOMAIN ] );
+
+		// Log only errors or if the environment is set to "on" (homologation)
+		if ( $is_error || $this->get_env() === "hml" )
+			$logger->$level( $message, $context );
+	}
+
+	/**
+	 * Wrapper for user event logging.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param string 	$template
+	 * @param array 	$vars
+	 * @param string 	$level
+	 * @param boolean 	$is_error
+	 *
+	 * @return void
+	 */
+	private function log_user_event( string $template, array $vars, string $level = "info", bool $is_error = false ) : void
+	{
+		$this->log(
+			level   : $level,
+			message : vsprintf( $template, $vars ),
+			context : $vars,
+			is_error: $is_error
+		);
 	}
 }
 
