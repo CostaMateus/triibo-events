@@ -172,6 +172,7 @@ class Triibo_Events
 	/**
 	 * Construct.
 	 *
+	 * @since 1.13.0 	Refactored
 	 * @since 1.8.0 	Added Triibo_Api_Node
 	 * @since 1.7.0 	Added HPOS compatibility declaration
 	 * @since 1.5.0 	Added var $env
@@ -186,28 +187,45 @@ class Triibo_Events
 			 * @since 1.7.0
 			 */
 			if ( class_exists( "WooCommerce" ) )
-				add_action( "before_woocommerce_init", [ $this, "setup_hpos_compatibility" ] );
+			{
+				$this->add_hooks(
+					type : "action",
+					hooks: [
+						"before_woocommerce_init" => [
+							"callback" => [ $this, "setup_hpos_compatibility" ],
+						],
+					]
+				);
+			}
 
-			add_filter( "plugin_action_links_" . plugin_basename( __FILE__ ), [ $this, "plugin_action_links" ] );
+			$basename = plugin_basename( file: __FILE__ );
 
-			/**
-			 * @since 1.4.0
-			 */
-			add_filter( "plugin_row_meta", [ $this, "plugin_row_meta" ], 10, 3 );
+			$filters  = [
+				"plugin_action_links_{$basename}" => [ "callback" => [ $this, "plugin_action_links" ] ],
 
-			add_action( "admin_menu",                          [ $this, "add_submenu_page"    ], 11    );
-			add_action( "triibo_api_service_add_button",       [ $this, "add_btn"             ], 11    );
-			add_action( "triibo_api_service_list_plugin_gate", [ $this, "add_info_dependency" ],       );
-			add_action( "triibo_api_service_list_plugin_node", [ $this, "add_info_dependency" ]        );
+				/**
+				 * @since 1.4.0
+				 */
+				"plugin_row_meta"                 => [ "callback" => [ $this, "plugin_row_meta"     ], "accepted_args" => 3 ]
+			];
 
-			add_action( "woocommerce_order_status_changed",                  [ $this, "order_status_change"  ], 10, 4 );
-			add_action( "woocommerce_subscription_status_cancelled",         [ $this, "subscription_ended"   ], 10, 1 );
-			add_action( "woocommerce_subscription_renewal_payment_complete", [ $this, "subscription_renewal" ], 10, 2 );
+			$actions  = [
+				"admin_menu"                                        => [ "callback" => [ $this, "add_submenu_page"     ], "priority" => 11 ],
+				"triibo_api_service_add_button"                     => [ "callback" => [ $this, "add_btn"              ], "priority" => 11 ],
+				"triibo_api_service_list_plugin_gate"               => [ "callback" => [ $this, "add_info_dependency"  ] ],
+				"triibo_api_service_list_plugin_node"               => [ "callback" => [ $this, "add_info_dependency"  ] ],
+				"woocommerce_subscription_status_cancelled"         => [ "callback" => [ $this, "subscription_ended"   ] ],
+				"woocommerce_order_status_changed"                  => [ "callback" => [ $this, "order_status_change"  ], "accepted_args" => 4 ],
+				"woocommerce_subscription_renewal_payment_complete" => [ "callback" => [ $this, "subscription_renewal" ], "accepted_args" => 2 ],
 
-			/**
-			 * @since 1.11.0
-			 */
-			add_action( "woocommerce_subscription_status_expired",           [ $this, "subscription_ended"   ], 10, 1 );
+				/**
+				 * @since 1.11.0
+				 */
+				"woocommerce_subscription_status_expired"           => [ "callback" => [ $this, "subscription_ended"   ] ]
+			];
+
+			$this->add_hooks( type: "filter", hooks: $filters );
+			$this->add_hooks( type: "action", hooks: $actions );
 
 			$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 			$this->api_gate = new Triibo_Api_Gateway();
@@ -219,7 +237,56 @@ class Triibo_Events
 		}
 		else
 		{
-			add_action( "admin_notices", [ $this, "triibo_api_services_missing_notice" ] );
+			$this->add_hooks(
+				type : "action",
+				hooks: [
+					"admin_notices" => [
+						"callback" => [ $this, "triibo_api_services_missing_notice" ],
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Add actions or filters.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param string 	$type
+	 * @param array 	$hooks
+	 *
+	 * @return void
+	 */
+	private function add_hooks( string $type, array $hooks ) : void
+	{
+		if ( ! in_array( $type, [ "action", "filter" ] ) )
+			return;
+
+		foreach ( $hooks as $hook => $data )
+		{
+			$priority      = ( isset( $data[ "priority"      ] ) ) ? $data[ "priority"      ] : 10;
+			$accepted_args = ( isset( $data[ "accepted_args" ] ) ) ? $data[ "accepted_args" ] : 1;
+
+			if ( "action" === $type )
+			{
+				add_action(
+					hook_name    : $hook,
+					callback     : $data[ "callback" ],
+					priority     : $priority,
+					accepted_args: $accepted_args
+				);
+			}
+
+			if ( "filter" === $type )
+			{
+				add_filter(
+					hook_name    : $hook,
+					callback     : $data[ "callback" ],
+					priority     : $priority,
+					accepted_args: $accepted_args
+				);
+			}
 		}
 	}
 
