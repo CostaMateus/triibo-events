@@ -501,6 +501,70 @@ class Triibo_Events
 	}
 
 	/**
+	 * Valid if is a sub-order and sends event for Triibo.
+	 *
+	 * @since 2.0.0 	Refactored
+	 * @since 1.1.0 	Rebuilt method to work with different statuses
+	 * @since 1.0.0
+	 *
+	 * @param int 		$order_id
+	 * @param string 	$old_status
+	 * @param string 	$new_status
+	 * @param object 	$order
+	 *
+	 * @return void
+	 */
+	public function order_status_change( int $order_id, string $old_status, string $new_status, object $order ) : void
+	{
+		if ( ! $this->is_original_order( $order ) )
+			return;
+
+		$user_id   = $order->get_user_id();
+		$triibo_id = $this->get_user_phone( user_id: $user_id );
+
+		if ( empty( $triibo_id ) )
+		{
+			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
+			return;
+		}
+
+		// Subscription
+		if ( $this->is_processing_subscription( order_id: $order_id, new_status: $new_status ) )
+		{
+			$this->process_vip_event(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id,
+				total    : $order->get_total()
+			);
+
+			$this->process_seu_clube_event(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id
+			);
+
+			return;
+		}
+
+		// Normal purchase
+		if ( $this->is_completed_purchase( order_id: $order_id, new_status: $new_status ) )
+		{
+			$this->process_normal_purchase(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id,
+				total    : $order->get_total()
+			);
+
+			return;
+		}
+	}
+
+	/**
 	 * Check if the order is an original order.
 	 *
 	 * @since 2.0.0
@@ -990,70 +1054,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Valid if is a sub-order and sends event for Triibo.
-	 *
-	 * @since 2.0.0 	Refactored
-	 * @since 1.1.0 	Rebuilt method to work with different statuses
-	 * @since 1.0.0
-	 *
-	 * @param int 		$order_id
-	 * @param string 	$old_status
-	 * @param string 	$new_status
-	 * @param object 	$order
-	 *
-	 * @return void
-	 */
-	public function order_status_change( int $order_id, string $old_status, string $new_status, object $order ) : void
-	{
-		if ( ! $this->is_original_order( $order ) )
-			return;
-
-		$user_id   = $order->get_user_id();
-		$triibo_id = $this->get_user_phone( user_id: $user_id );
-
-		if ( empty( $triibo_id ) )
-		{
-			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
-			return;
-		}
-
-		// Subscription
-		if ( $this->is_processing_subscription( order_id: $order_id, new_status: $new_status ) )
-		{
-			$this->process_vip_event(
-				order    : $order,
-				user_id  : $user_id,
-				order_id : $order_id,
-				triibo_id: $triibo_id,
-				total    : $order->get_total()
-			);
-
-			$this->process_seu_clube_event(
-				order    : $order,
-				user_id  : $user_id,
-				order_id : $order_id,
-				triibo_id: $triibo_id
-			);
-
-			return;
-		}
-
-		// Normal purchase
-		if ( $this->is_completed_purchase( order_id: $order_id, new_status: $new_status ) )
-		{
-			$this->process_normal_purchase(
-				order    : $order,
-				user_id  : $user_id,
-				order_id : $order_id,
-				triibo_id: $triibo_id,
-				total    : $order->get_total()
-			);
-
-			return;
-		}
-	}
-
-	/**
 	 * Process subscription cancellation/expiration.
 	 *
 	 * @since 1.11.0 	Renamed to `subscription_ended` from `subscription_status_cancelled`
@@ -1326,24 +1326,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Expose valid events via filter to other plugins.
-	 *
-	 * @since 1.12.0
-	 *
-	 * @return array
-	 */
-	public static function get_valid_events() : array
-	{
-		$events = [];
-
-		foreach ( self::PLANS as $env )
-			foreach ( $env as $event )
-				$events[] = $event;
-
-		return array_unique( $events );
-	}
-
-	/**
 	 * Register logs.
 	 *
 	 * @since 2.0.0 	Refactored
@@ -1392,6 +1374,24 @@ class Triibo_Events
 			context : $vars,
 			is_error: $is_error
 		);
+	}
+
+	/**
+	 * Expose valid events via filter to other plugins.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array
+	 */
+	public static function get_valid_events() : array
+	{
+		$events = [];
+
+		foreach ( self::PLANS as $env )
+			foreach ( $env as $event )
+				$events[] = $event;
+
+		return array_unique( $events );
 	}
 }
 
