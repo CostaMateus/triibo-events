@@ -520,21 +520,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Log user without account.
-	 *
-	 * @since 1.13.0
-	 *
-	 * @param int $order_id
-	 * @param int $user_id
-	 *
-	 * @return void
-	 */
-	private function log_user_without_account( $order_id, $user_id ) : void
-	{
-		$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
-	}
-
-	/**
 	 * Check if the order is a processing subscription.
 	 *
 	 * @since 1.13.0
@@ -982,26 +967,89 @@ class Triibo_Events
     /**
 	 * Register logs.
 	 *
+	 * @since 1.13.0 	Added parameter $context
 	 * @since 1.10.1 	Fix log
 	 * @since 1.9.0 	Changing to the new woocommerce standard
 	 * 					Added params $level and $error
 	 * 					Renamed param $data to $message
 	 * @since 1.0.0
 	 *
-	 * @param string 	$level
-	 * @param string 	$message
-	 * @param bool 		$is_error
+     * @param string 	$level 		The log level (e.g., 'error', 'info')
+     * @param string 	$message 	The log message
+	 * @param array 	$context 	Additional context for the log message
+     * @param bool 		$is_error 	Whether the log is an error
 	 *
 	 * @return void
      */
-    public function log( string $level, string $message, bool $is_error = false ) : void
+    private function log( string $level = "info", string $message, array $context = [], bool $is_error = false ) : void
 	{
-		$logger  = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
+		// Use WooCommerce logger if available
+        $logger  = function_exists( "wc_get_logger" )
+			? wc_get_logger()
+			: new WC_Logger();
 
-		$context = [ "source" => self::DOMAIN ];
+        $context = array_merge( $context, [ "source" => self::DOMAIN ] );
 
+        // Log only errors or if the environment is set to "on" (homologation)
 		if ( $is_error || $this->get_env() === "hml" )
 			$logger->$level( $message, $context );
+	}
+
+	/**
+	 * Log user without account.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int $order_id
+	 * @param int $user_id
+	 *
+	 * @return void
+	 */
+	private function log_user_without_account( $order_id, $user_id ) : void
+	{
+		$this->log(
+			is_error: true,
+			level   : "warning",
+			message : "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo"
+		);
+	}
+
+	/**
+	 * Log user already credited.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$order_id
+	 * @param int 		$user_id
+	 * @param string 	$triibo_id
+	 * @param string 	$event
+	 *
+	 * @return void
+	 */
+	private function log_user_already_credited( int $order_id, int $user_id, string $triibo_id, string $event ) : void
+	{
+		$this->log( message: "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with '{$event}'" );
+	}
+
+	/**
+	 * Log user failed to credit.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param int 		$order_id
+	 * @param int 		$user_id
+	 * @param string 	$triibo_id
+	 * @param string 	$event
+	 *
+	 * @return void
+	 */
+	private function log_user_failed_to_credited( int $order_id, int $user_id, string $triibo_id, string $event ) : void
+	{
+		$this->log(
+			is_error: true,
+			level   : "error",
+			message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, failed to credit '{$event}'"
+		);
 	}
 
 	/**
