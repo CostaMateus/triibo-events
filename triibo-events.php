@@ -6,7 +6,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.12.0
+ * Version: 				1.13.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -15,7 +15,7 @@
  *
  * @package Triibo_Events
  *
- * @version 1.12.0
+ * @version 1.13.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -30,7 +30,7 @@ class Triibo_Events
 	 *
 	 * @var string
 	 */
-	const VERSION = "1.12.0";
+	const VERSION = "1.13.0";
 
 	/**
 	 * Plugin domain.
@@ -612,35 +612,54 @@ class Triibo_Events
 
 			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
 			{
-				$has_cp  = $this->has_already_executed_event( $user_id, "has_cp_{$order_id}"  );
-				$has_atv = $this->has_already_executed_event( $user_id, "has_atv_{$order_id}" );
+				$has_cp  = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}"  );
+				$has_atv = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
 
 				if ( !$has_cp )
 				{
-					$response = $this->compra_marketplace( $order, $triibo_id, $total );
+					$response = $this->call_event(
+						order    : $order,
+						event    : "Compra_Marketplace",
+						triibo_id: $triibo_id,
+						total    : $total
+					);
 
 					if ( $response[ "success" ] )
-						$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
+						$this->mark_event_executed( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
 				}
 				else
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
+					$this->log(
+						is_error: true,
+						level   : "notice",
+						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'"
+					);
 				}
 
 				if ( !$has_atv )
 				{
 					$event    = self::PLANS[ $this->get_env() ][ $product_id ];
-					$response = $this->assinatura_tribo_vip( $order, $triibo_id, 1, $event );
+
+					$response = $this->call_event(
+						order    : $order,
+						event    : $event,
+						triibo_id: $triibo_id,
+						total    : 1
+					);
 
 					if ( $response[ "success" ] )
 					{
-						$this->mark_event_executed( $user_id, "has_atv_{$order_id}" );
-						$this->update_user_orgs( $user_id, $order, $event );
+						$this->mark_event_executed( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
+						$this->update_user_orgs( order: $order, user_id: $user_id, event: $event );
 					}
 				}
 				else
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+					$this->log(
+						is_error: true,
+						level   : "notice",
+						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'"
+					);
 				}
 
 				if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
@@ -672,11 +691,16 @@ class Triibo_Events
 
 			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 			{
-				$has_seu_clube = $this->has_already_executed_event( $user_id, "has_seu_clube_{$order_id}" );
+				$has_seu_clube = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_seu_clube_{$order_id}" );
 
 				if ( $has_seu_clube )
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Seu_Clube'" );
+					$this->log(
+						is_error: true,
+						level   : "notice",
+						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Seu_Clube'"
+					);
+
 					break;
 				}
 
@@ -684,12 +708,23 @@ class Triibo_Events
 
 				if ( is_null( $token ) )
 				{
-					$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_id}, unable to generate Node API token", true );
+					$this->log(
+						is_error: true,
+						level   : "error",
+						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, unable to generate Node API token",
+					);
 					break;
 				}
 
-				$this->mark_event_executed( $user_id, "has_seu_clube_{$order_id}" );
-				$this->add_user_subscription( $user_id, $order, $product_id, $token );
+				$this->mark_event_executed( user_id: $user_id, meta_key: "has_seu_clube_{$order_id}" );
+
+				$this->toggle_user_subscription(
+					order     : $order,
+					action    : "add",
+					user_id   : $user_id,
+					product_id: $product_id,
+					token     : $token
+				);
 
 				$order->save();
 				break;
@@ -716,16 +751,188 @@ class Triibo_Events
 
 		if ( $has_cp )
 		{
-			$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
+			$this->log(
+				is_error: true,
+				level   : "notice",
+				message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'"
+			);
+
 			return;
 		}
 
-		$response = $this->compra_marketplace( $order, $triibo_id, $total );
+		$response = $this->call_event(
+			order    : $order,
+			event    : "Compra_Marketplace",
+			triibo_id: $triibo_id,
+			total    : $total
+		);
 
 		if ( $response[ "success" ] )
-			$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
+			$this->mark_event_executed( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
 
 		$order->save();
+	}
+
+	/**
+	 * Get organization IDs and names.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param object 	$order
+	 * @param int 		$product_id
+	 * @param int 		$user_id
+	 * @param string 	$triibo_id
+	 * @param int 		$order_id
+	 * @param float 	$total
+	 * @param bool 		$has_cp
+	 * @param bool 		$has_atv
+	 *
+	 * @return void
+	 */
+	private function process_subscription_renewal_item( object $order, int $product_id, int $user_id, string $triibo_id, int $order_id, float $total, bool $has_cp, bool $has_atv ) : void
+	{
+		$events = [
+			"cp"  => [
+				"has"  => $has_cp,
+				"name" => "Compra_Marketplace",
+				"args" => [
+					"Compra_Marketplace",
+					$order,
+					$triibo_id,
+					$total
+				],
+			],
+			"atv" => [
+				"has"  => $has_atv,
+				"name" => "Assinatura_Triibo_Vip",
+				"args" => [
+					self::PLANS[ $this->get_env() ][ $product_id ],
+					$order,
+					$triibo_id,
+					1
+				],
+			],
+		];
+
+		foreach ( $events as $key => $event_data )
+		{
+			if ( $event_data[ "has" ] )
+			{
+				$this->log_user_already_credited(
+					order_id : $order_id,
+					user_id  : $user_id,
+					triibo_id: $triibo_id,
+					event    : $event_data[ "name" ]
+				);
+
+				continue;
+			}
+
+			$response = call_user_func_array( [ $this, "call_event" ], $event_data[ "args" ] );
+
+			if ( ! $response[ "success" ] )
+			{
+				$this->log_user_failed_to_credited(
+					order_id : $order_id,
+					user_id  : $user_id,
+					triibo_id: $triibo_id,
+					event    : $event_data[ "name" ]
+				);
+
+				continue;
+			}
+
+			$this->mark_event_executed( user_id: $user_id, meta_key: "has_{$key}_{$order_id}" );
+		}
+
+		$order->save();
+	}
+
+	/**
+	 * Get organization IDs and names.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @return array
+	 */
+	private function get_org_ids_and_names() : array
+	{
+		return self::ORGS[ $this->get_env() ];
+	}
+
+	/**
+	 * Add or remove organization from user.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param object    $order
+	 * @param string    $note
+	 * @param string    $action 'add' or 'remove'
+	 * @param string    $uid
+	 * @param string    $org_id
+	 * @param string    $org_name
+	 *
+	 * @return boolean
+	 */
+	private function toggle_org_on_user( object &$order, string &$note, string $action, string $uid, string $org_id, string $org_name ) : bool
+	{
+		if ( ! in_array( $action, [ "add", "remove" ] ) )
+		{
+			$this->log(
+				is_error: true,
+				level   : "error",
+				message : "Ação inválida fornecida para toggle_org_on_user: {$action}",
+				context : [
+					"order_id" => $order->get_id(),
+					"uid"      => $uid,
+					"org_id"   => $org_id,
+					"org_name" => $org_name,
+					"action"   => $action,
+				]
+			);
+
+			return false;
+		}
+
+		$api_method      = "add_org";
+		$success_message = "\n\nOrganização ($org_name) adicionada com sucesso";
+		$failure_message = "\n\nFalha ao adicionar organização ({$org_name}) ao usuário";
+
+		if ( "remove" === $action )
+		{
+			$api_method      = "del_org";
+			$success_message = "\n\nOrganização ($org_name) removida com sucesso";
+			$failure_message = "\n\nFalha ao remover organização ({$org_name}) do usuário";
+		}
+
+		$response = $this->api_gate->$api_method( uid: $uid, org_id: $org_id );
+
+		if ( $response[ "success" ] )
+		{
+			$note .= $success_message;
+			return true;
+		}
+
+		$this->log(
+			is_error: true,
+			level   : "error",
+			message : trim( $failure_message),
+			context : [
+				"order_id" => $order->get_id(),
+				"uid"      => $uid,
+				"org_id"   => $org_id,
+				"org_name" => $org_name,
+				"action"   => $action,
+				"response" => $response
+			]
+		);
+
+		$note .= $failure_message;
+		$note .= "\n\nConta: {$uid}\nErro: API";
+
+		$order->add_order_note( note: $note );
+
+		return false;
 	}
 
 	/**
@@ -809,7 +1016,7 @@ class Triibo_Events
 		{
 			$product_id = $item->get_product_id();
 
-			$this->log( "info", "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
+			$this->log( message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
 
 			// Seu Clube.
 			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
@@ -818,92 +1025,79 @@ class Triibo_Events
 
 				if ( is_null( $token ) )
 				{
-					$this->log( "error", "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token", true );
+					$this->log(
+						level   : "error",
+						message : "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token",
+						is_error: true
+					);
 					break;
 				}
 
-				$this->del_user_subscription( $user_id, $subscription, $product_id, $token );
+				$order = wc_get_order( the_order: $subscription->get_parent_id() );
 
-				$subscription->save();
+				$this->toggle_user_subscription(
+					order     : $order,
+					action    : "delete",
+					user_id   : $user_id,
+					product_id: $product_id,
+					token     : $token
+				);
+
+				$order->save();
 				break;
 			}
 		}
 	}
 
 	/**
-	 * Triggered events when subscription renewal payment is confirmed.
-	 * Similar to order_status_change().
+	 * Handle subscription renewal event.
 	 *
+	 * @since 1.13.0 	Refactored
 	 * @since 1.2.0
+	 *
+	 * @param object 	$subscription
+	 * @param object 	$order
 	 *
 	 * @return void
 	 */
-	public function subscription_renewal( $subscription, $order ) : void
+	public function subscription_renewal( object $subscription, object $order ) : void
 	{
-		$total          = $order->get_total();
-		$order_id       = $order->get_id();
-		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
+		$total     = $order->get_total();
+		$order_id  = $order->get_id();
 
-		$user_id        = $order->get_user_id();
-		$triibo_phone   = get_user_meta( $user_id, "_triibo_phone", true );
-		$triibo_phone   = $triibo_phone ?: get_user_meta( $user_id, "triiboId_phone", true );
-		$triibo_phone   = preg_replace( "/\D/", "", $triibo_phone );
+		if ( ! $this->is_original_order( order: $order ) )
+			return;
 
-		$has_cp         = get_user_meta( $user_id, "has_cp_{$order_id}",  true );
-		$has_atv        = get_user_meta( $user_id, "has_atv_{$order_id}", true );
+		$user_id   = $order->get_user_id();
+		$triibo_id = $this->get_user_phone( user_id: $user_id );
 
-		if ( $original_order )
+		if ( empty( $triibo_id ) )
 		{
-			if ( !empty( $triibo_phone ) )
+			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
+			return;
+		}
+
+		$has_cp    = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}"  );
+		$has_atv   = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
+
+		foreach ( $order->get_items() as $item )
+		{
+			$product_id = $item->get_product_id();
+
+			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
 			{
-				// assinatura
-				foreach ( $order->get_items() as $item_id => $item )
-				{
-					// Triibo VIP
-					if ( isset( self::PLANS[ $this->get_env() ][ $item->get_product_id() ] ) )
-					{
-						if ( empty( $has_cp ) )
-						{
-							/**
-							 * Receives response from the API, if successful, adds the metadata to not execute the event again.
-							 * @since 	1.3.2
-							 */
-							$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+				$this->process_subscription_renewal_item(
+					order     : $order,
+					product_id: $product_id,
+					user_id   : $user_id,
+					triibo_id : $triibo_id,
+					order_id  : $order_id,
+					total     : $total,
+					has_cp    : $has_cp,
+					has_atv   : $has_atv
+				);
 
-							if ( $response[ "success" ] )
-								add_user_meta( $user_id, "has_cp_{$order_id}", true, true );
-						}
-						else
-						{
-							$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
-						}
-
-						if ( empty( $has_atv ) )
-						{
-							$event    = self::PLANS[ $this->get_env() ][ $item->get_product_id() ];
-
-							/**
-							 * Receives response from the API, if successful, adds the metadata to not execute the event again.
-							 * @since 	1.3.2
-							 */
-							$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
-
-							if ( $response[ "success" ] )
-								add_user_meta( $user_id, "has_atv_{$order_id}", true, true );
-						}
-						else
-						{
-							$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
-						}
-
-						$order->save();
-						break;
-					}
-				}
-			}
-			else
-			{
-				$this->log( "info", "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo" );
+				break;
 			}
 		}
 	}
@@ -1067,68 +1261,51 @@ class Triibo_Events
 	}
 
 	/**
-	 * Update user orgs.
+	 * Update user organizations (add VIP, remove normal org).
 	 *
+	 * @since 1.13.0 	Refactored
 	 * @since 1.5.2 	Added $order and $event parameters
 	 * @since 1.5.0
 	 *
+	 * @param object 	$order
+	 * @param int 		$user_id
+	 * @param string 	$event
+	 *
 	 * @return void
 	 */
-	public function update_user_orgs( $user_id, &$order, $event ) : void
+	private function update_user_orgs( object &$order, int $user_id, string $event ) : void
 	{
-		$note     = "Evento: {$event}";
-		$org      = self::ORGS[ $this->get_env() ];
+		$note    = "Evento: {$event}";
+		$org     = $this->get_org_ids_and_names();
+		$uid     = get_user_meta( user_id: $user_id, key: "_triibo_id", single: true );
 
-		$id_add   = $org[ "add" ][ "id"   ];
-		$name_add = $org[ "add" ][ "name" ];
+		$added   = $this->toggle_org_on_user(
+			order   : $order,
+			note    : $note,
+			action  : "add",
+			uid     : $uid,
+			org_id  : $org[ "add" ][ "id"   ],
+			org_name: $org[ "add" ][ "name" ],
+		);
 
-		$id_del   = $org[ "del" ][ "id"   ];
-		$name_del = $org[ "del" ][ "name" ];
+		$removed = $this->toggle_org_on_user(
+			order   : $order,
+			note    : $note,
+			action  : "remove",
+			uid     : $uid,
+			org_id  : $org[ "del" ][ "id"   ],
+			org_name: $org[ "del" ][ "name" ],
+		);
 
-		$uid      = get_user_meta( $user_id, "_triibo_id", true );
-
-		/**
-		 * Add org to user.
-		 * Triibo VIP.
-		 */
-		$response = $this->api_gate->add_org( uid: $uid, org_id: $id_add );
-
-		if ( !$response[ "success" ] )
-		{
-			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
-
-			$note .= "\n\nFalha ao adicionar organização ({$name_add}) ao usuário";
-			$note .= "\n\nConta: {$uid}\nErro: API";
-
-			$order->add_order_note( $note );
-
+		if ( ! $added )
 			return;
-		}
 
-		$note    .= "\n\nOrganização ($name_add) adicionada com sucesso";
-
-		/**
-		 * Remove org from user.
-		 * Triibo.
-		 */
-		$response = $this->api_gate->del_org( uid: $uid, org_id: $id_del );
-
-		if ( !$response[ "success" ] )
-		{
-			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
-
-			$note .= "\n\nFalha ao remover organização ({$name_del}) do usuário";
-			$note .= "\n\nConta: {$uid}\nErro: API";
-
-			$order->add_order_note( $note );
-
+		if ( ! $removed )
 			return;
-		}
 
-		$note    .= "\n\nOrganização ($name_del) removida com sucesso";
-		$note    .= "\n\nConta: {$uid}";
+		$note .= "\n\nConta: {$uid}";
 
-		$order->add_order_note( $note );
+		$order->add_order_note( note: $note );
 	}
 
 	/**
@@ -1155,7 +1332,7 @@ class Triibo_Events
 
 		if ( !$response[ "success" ] )
 		{
-			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
+			// $this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
 
 			$note .= "\n\nFalha ao adicionar Assinatura Seu Clube ao usuário";
 			$note .= "\n\nConta: {$uid}\nErro: API";
@@ -1195,7 +1372,7 @@ class Triibo_Events
 
 		if ( !$response[ "success" ] )
 		{
-			$this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
+			// $this->log( "error", print_r( [ "uid" => $uid, "response" => $response ], true ), true );
 
 			$note .= "\n\nFalha ao cancelar Assinatura Seu Clube do usuário";
 			$note .= "\n\nConta: {$uid}\nErro: API";
@@ -1209,6 +1386,88 @@ class Triibo_Events
 		$note    .= "\n\nConta: {$uid}";
 
 		$subscription->add_order_note( $note );
+	}
+
+	/**
+	 * Add or delete user subscription Seu Clube.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param object   &$order
+	 * @param string   $action 'add' or 'delete'
+	 * @param int      $user_id
+	 * @param int      $product_id
+	 * @param string   $token
+	 *
+	 * @return void
+	 */
+	private function toggle_user_subscription( object &$order, string $action, int $user_id, int $product_id, string $token ) : void
+	{
+		if ( ! in_array( $action, [ "add", "delete" ] ) )
+		{
+			$this->log(
+				is_error: true,
+				level   : "error",
+				message : "Ação inválida fornecida para toggle_user_subscription: {$action}",
+				context : [
+					"order_id"  => $order->get_id(),
+					"action"    => $action,
+					"user_id"   => $user_id,
+					"product_id"=> $product_id,
+				]
+			);
+
+			return;
+		}
+
+		$event_name      = "Assinatura Seu Clube";
+		$api_method      = "add_subscription";
+		$success_message = "\n\n{$event_name} adicionada com sucesso";
+		$failure_message = "\n\nFalha ao adicionar {$event_name} ao usuário";
+
+		if ( "delete" === $action )
+		{
+			$api_method      = "del_subscription";
+			$success_message = "\n\n{$event_name} cancelada com sucesso";
+			$failure_message = "\n\nFalha ao cancelar {$event_name} do usuário";
+		}
+
+		$note     = "Evento: {$event_name}";
+		$uid      = get_user_meta( user_id: $user_id, key: "_triibo_id", single: true );
+		$params   = [
+			"productId" => ( string ) $product_id,
+			"uid"       => $uid
+		];
+
+		$response = $this->api_node->$api_method( token: $token, params: $params );
+
+		if ( $response[ "success" ] )
+		{
+			$note .= $success_message;
+			$note .= "\n\nConta: {$uid}";
+
+			$order->add_order_note( note: $note );
+
+			return;
+		}
+
+		$this->log(
+			is_error: true,
+			level   : "error",
+			message : trim( $failure_message ),
+			context : [
+				"order_id"  => $order->get_id(),
+				"action"    => $action,
+				"user_id"   => $user_id,
+				"product_id"=> $product_id,
+				"response"  => $response
+			]
+		);
+
+		$note .= $failure_message;
+		$note .= "\n\nConta: {$uid}\nErro: API";
+
+		$order->add_order_note( note: $note );
 	}
 
 	/**
