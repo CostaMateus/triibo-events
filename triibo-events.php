@@ -249,96 +249,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Add actions or filters.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string 	$type
-	 * @param array 	$hooks
-	 *
-	 * @return void
-	 */
-	private function add_hooks( string $type, array $hooks ) : void
-	{
-		if ( ! in_array( $type, [ "action", "filter" ] ) )
-			return;
-
-		foreach ( $hooks as $hook => $data )
-		{
-			$priority      = ( isset( $data[ "priority"      ] ) ) ? $data[ "priority"      ] : 10;
-			$accepted_args = ( isset( $data[ "accepted_args" ] ) ) ? $data[ "accepted_args" ] : 1;
-
-			if ( "action" === $type )
-			{
-				add_action(
-					hook_name    : $hook,
-					callback     : $data[ "callback" ],
-					priority     : $priority,
-					accepted_args: $accepted_args
-				);
-			}
-
-			if ( "filter" === $type )
-			{
-				add_filter(
-					hook_name    : $hook,
-					callback     : $data[ "callback" ],
-					priority     : $priority,
-					accepted_args: $accepted_args
-				);
-			}
-		}
-	}
-
-	/**
-	 * Get environment.
-	 *
-	 * @since 1.5.0
-	 *
-	 * @return string
-	 */
-	private function get_env() : string
-	{
-		return ( get_option( option: "home" ) === "https://marketplace.triibo.com.br" ) ? "prd" : "hml";
-	}
-
-	/**
-	 * Call event.
-	 *
-	 * @since 2.0.0 	Refactored
-	 * @since 1.3.2 	Added return value.
-	 * @since 1.1.0
-	 *
-	 * @param object 	$order
-	 * @param string 	$event
-	 * @param string 	$triibo_id
-	 * @param float 	$total
-	 *
-	 * @return array
-	 */
-	private function call_event( object &$order, string $event, string $triibo_id, float $total ) : array
-	{
-		$response = $this->api_gate->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
-
-		/**
-		 * Added event field to log.
-		 * @since 	1.2.0
-		 */
-		$this->log(
-			message: "Order: #{$order->get_id()} | {$triibo_id} | {$event}",
-			context: [
-				"event"     => $event,
-				"triibo_id" => $triibo_id,
-				"response"  => $response
-			]
-		);
-
-		$this->add_note( order: $order, triibo_id: $triibo_id, event: $event, response: $response );
-
-		return $response;
-	}
-
-	/**
 	 * Return an instance of this class.
 	 *
 	 * @since 1.0.0
@@ -1000,6 +910,168 @@ class Triibo_Events
 	}
 
 	/**
+	 * Generalized event processing helper.
+	 * Check meta, call API, mark as executed, log result.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $args
+	 *   - meta_key:     string
+	 *   - api_callback: callable
+	 *   - api_args:     array
+	 *   - log_context:  array
+	 *   - event_label:  string
+	 *   - order:        object
+	 *   - user_id:      int
+	 *   - triibo_id:    string
+	 *   - order_id:     int
+	 *   - success_note: string
+	 *   - fail_note:    string
+	 *   - log_success:  string (template)
+	 *   - log_fail:     string (template)
+	 *   - log_type:     string
+	 *
+	 * @return void
+	 */
+	private function process_event( array $args ) : void
+	{
+		extract( $args );
+
+		if ( $this->has_already_executed_event( $user_id, $meta_key ) )
+		{
+			$this->log_user_event(
+				template: $log_success,
+				level   : $log_type,
+				vars    : [
+					$order_id,
+					$user_id,
+					$triibo_id,
+					$event_label
+				],
+			);
+
+			return;
+		}
+
+		$response = call_user_func_array( $api_callback, $api_args );
+
+		if ( ! isset( $response[ "success" ] ) || ! $response[ "success" ] )
+		{
+			$this->log_user_event(
+				template: $log_fail,
+				level   : "error",
+				is_error: true,
+				vars    : [
+					$order_id,
+					$user_id,
+					$triibo_id,
+					$event_label
+				],
+			);
+
+			if ( isset( $order ) && isset( $fail_note ) )
+				$order->add_order_note( $fail_note );
+
+			return;
+		}
+
+		$this->mark_event_executed( $user_id, $meta_key );
+
+		if ( isset( $order ) && isset( $success_note ) )
+			$order->add_order_note( $success_note );
+	}
+
+	/**
+	 * Add actions or filters.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string 	$type
+	 * @param array 	$hooks
+	 *
+	 * @return void
+	 */
+	private function add_hooks( string $type, array $hooks ) : void
+	{
+		if ( ! in_array( $type, [ "action", "filter" ] ) )
+			return;
+
+		foreach ( $hooks as $hook => $data )
+		{
+			$priority      = ( isset( $data[ "priority"      ] ) ) ? $data[ "priority"      ] : 10;
+			$accepted_args = ( isset( $data[ "accepted_args" ] ) ) ? $data[ "accepted_args" ] : 1;
+
+			if ( "action" === $type )
+			{
+				add_action(
+					hook_name    : $hook,
+					callback     : $data[ "callback" ],
+					priority     : $priority,
+					accepted_args: $accepted_args
+				);
+			}
+
+			if ( "filter" === $type )
+			{
+				add_filter(
+					hook_name    : $hook,
+					callback     : $data[ "callback" ],
+					priority     : $priority,
+					accepted_args: $accepted_args
+				);
+			}
+		}
+	}
+
+	/**
+	 * Get environment.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @return string
+	 */
+	private function get_env() : string
+	{
+		return ( get_option( option: "home" ) === "https://marketplace.triibo.com.br" ) ? "prd" : "hml";
+	}
+
+	/**
+	 * Call event.
+	 *
+	 * @since 2.0.0 	Refactored
+	 * @since 1.3.2 	Added return value.
+	 * @since 1.1.0
+	 *
+	 * @param object 	$order
+	 * @param string 	$event
+	 * @param string 	$triibo_id
+	 * @param float 	$total
+	 *
+	 * @return array
+	 */
+	private function call_event( object &$order, string $event, string $triibo_id, float $total ) : array
+	{
+		$response = $this->api_gate->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
+
+		/**
+		 * Added event field to log.
+		 * @since 	1.2.0
+		 */
+		$this->log(
+			message: "Order: #{$order->get_id()} | {$triibo_id} | {$event}",
+			context: [
+				"event"     => $event,
+				"triibo_id" => $triibo_id,
+				"response"  => $response
+			]
+		);
+
+		$this->add_note( order: $order, triibo_id: $triibo_id, event: $event, response: $response );
+
+		return $response;
+	}
+
+	/**
 	 * Get organization IDs and names.
 	 *
 	 * @since 2.0.0
@@ -1084,78 +1156,6 @@ class Triibo_Events
 		$order->add_order_note( note: $note );
 
 		return false;
-	}
-
-	/**
-	 * Generalized event processing helper.
-	 * Check meta, call API, mark as executed, log result.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param array $args
-	 *   - meta_key:     string
-	 *   - api_callback: callable
-	 *   - api_args:     array
-	 *   - log_context:  array
-	 *   - event_label:  string
-	 *   - order:        object
-	 *   - user_id:      int
-	 *   - triibo_id:    string
-	 *   - order_id:     int
-	 *   - success_note: string
-	 *   - fail_note:    string
-	 *   - log_success:  string (template)
-	 *   - log_fail:     string (template)
-	 *   - log_type:     string
-	 *
-	 * @return void
-	 */
-	private function process_event( array $args ) : void
-	{
-		extract( $args );
-
-		if ( $this->has_already_executed_event( $user_id, $meta_key ) )
-		{
-			$this->log_user_event(
-				template: $log_success,
-				level   : $log_type,
-				vars    : [
-					$order_id,
-					$user_id,
-					$triibo_id,
-					$event_label
-				],
-			);
-
-			return;
-		}
-
-		$response = call_user_func_array( $api_callback, $api_args );
-
-		if ( ! isset( $response[ "success" ] ) || ! $response[ "success" ] )
-		{
-			$this->log_user_event(
-				template: $log_fail,
-				level   : "error",
-				is_error: true,
-				vars    : [
-					$order_id,
-					$user_id,
-					$triibo_id,
-					$event_label
-				],
-			);
-
-			if ( isset( $order ) && isset( $fail_note ) )
-				$order->add_order_note( $fail_note );
-
-			return;
-		}
-
-		$this->mark_event_executed( $user_id, $meta_key );
-
-		if ( isset( $order ) && isset( $success_note ) )
-			$order->add_order_note( $success_note );
 	}
 
 	/**
