@@ -596,6 +596,8 @@ class Triibo_Events
 	/**
 	 * Process VIP event.
 	 *
+	 * @since 1.13.0
+	 *
 	 * @param object 	$order
 	 * @param int 		$user_id
 	 * @param int 		$order_id
@@ -610,58 +612,56 @@ class Triibo_Events
 		{
 			$product_id = $item->get_product_id();
 
+			// Triibo VIP
 			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
 			{
-				$has_cp  = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}"  );
-				$has_atv = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
+				// Compra_Marketplace
+				$this->process_event(
+					args: [
+						"meta_key"     => "has_cp_{$order_id}",
+						"api_callback" => [ $this, "call_event" ],
+						"api_args"     => [ $order, "Compra_Marketplace", $triibo_id, $total ],
+						"log_context"  => [],
+						"event_label"  => "Compra_Marketplace",
+						"order"        => $order,
+						"user_id"      => $user_id,
+						"triibo_id"    => $triibo_id,
+						"order_id"     => $order_id,
+						"success_note" => null,
+						"fail_note"    => null,
+						"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+						"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
+						"log_type"     => "notice",
+					]
+				);
 
-				if ( !$has_cp )
-				{
-					$response = $this->call_event(
-						order    : $order,
-						event    : "Compra_Marketplace",
-						triibo_id: $triibo_id,
-						total    : $total
-					);
+				$event = self::PLANS[ $this->get_env() ][ $product_id ];
 
-					if ( $response[ "success" ] )
-						$this->mark_event_executed( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
-				}
-				else
-				{
-					$this->log(
-						is_error: true,
-						level   : "notice",
-						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'"
-					);
-				}
+				// Assinatura_Triibo_Vip
+				$this->process_event(
+					args: [
+						"meta_key"     => "has_atv_{$order_id}",
+						"api_callback" => [ $this, "call_event" ],
+						"api_args"     => [ $order, $event, $triibo_id, 1 ],
+						"log_context"  => [],
+						"event_label"  => $event,
+						"order"        => $order,
+						"user_id"      => $user_id,
+						"triibo_id"    => $triibo_id,
+						"order_id"     => $order_id,
+						"success_note" => null,
+						"fail_note"    => null,
+						"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+						"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
+						"log_type"     => "notice",
+					]
+				);
 
-				if ( !$has_atv )
-				{
-					$event    = self::PLANS[ $this->get_env() ][ $product_id ];
-
-					$response = $this->call_event(
-						order    : $order,
-						event    : $event,
-						triibo_id: $triibo_id,
-						total    : 1
-					);
-
-					if ( $response[ "success" ] )
-					{
-						$this->mark_event_executed( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
-						$this->update_user_orgs( order: $order, user_id: $user_id, event: $event );
-					}
-				}
-				else
-				{
-					$this->log(
-						is_error: true,
-						level   : "notice",
-						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'"
-					);
-				}
-
+				/**
+				 * Check if it is not 'Seu Clube' as well
+				 * Triibo Vip, started to trigger the 'Seu_Clube' event
+				 * @since 1.10.0
+				 */
 				if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 				{
 					$order->save();
@@ -691,39 +691,39 @@ class Triibo_Events
 
 			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 			{
-				$has_seu_clube = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_seu_clube_{$order_id}" );
+				$this->process_event(
+					args: [
+						"meta_key"     => "has_seu_clube_{$order_id}",
+						"api_callback" => function() use ( $user_id, $order, $product_id )
+						{
+							$token = $this->api_node->get_token( user_id: $user_id );
 
-				if ( $has_seu_clube )
-				{
-					$this->log(
-						is_error: true,
-						level   : "notice",
-						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Seu_Clube'"
-					);
+							if ( is_null( $token ) )
+								return [ "success" => false ];
 
-					break;
-				}
+							$this->toggle_user_subscription(
+								order     : $order,
+								action    : "add",
+								user_id   : $user_id,
+								product_id: $product_id,
+								token     : $token
+							);
 
-				$token = $this->api_node->get_token( user_id: $user_id );
-
-				if ( is_null( $token ) )
-				{
-					$this->log(
-						is_error: true,
-						level   : "error",
-						message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, unable to generate Node API token",
-					);
-					break;
-				}
-
-				$this->mark_event_executed( user_id: $user_id, meta_key: "has_seu_clube_{$order_id}" );
-
-				$this->toggle_user_subscription(
-					order     : $order,
-					action    : "add",
-					user_id   : $user_id,
-					product_id: $product_id,
-					token     : $token
+							return [ "success" => true ];
+						},
+						"api_args"     => [],
+						"log_context"  => [],
+						"event_label"  => "Seu_Clube",
+						"order"        => $order,
+						"user_id"      => $user_id,
+						"triibo_id"    => $triibo_id,
+						"order_id"     => $order_id,
+						"success_note" => null,
+						"fail_note"    => null,
+						"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+						"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
+						"log_type"     => "notice",
+					]
 				);
 
 				$order->save();
@@ -747,28 +747,24 @@ class Triibo_Events
 	 */
 	private function process_normal_purchase( object $order, int $user_id, int $order_id, string $triibo_id, float $total ) : void
 	{
-		$has_cp = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
-
-		if ( $has_cp )
-		{
-			$this->log(
-				is_error: true,
-				level   : "notice",
-				message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'"
-			);
-
-			return;
-		}
-
-		$response = $this->call_event(
-			order    : $order,
-			event    : "Compra_Marketplace",
-			triibo_id: $triibo_id,
-			total    : $total
+		$this->process_event(
+			args: [
+				"meta_key"    => "has_cp_{$order_id}",
+				"api_callback"=> [$this, "call_event"],
+				"api_args"    => [$order, "Compra_Marketplace", $triibo_id, $total],
+				"log_context" => [],
+				"event_label" => "Compra_Marketplace",
+				"order"       => $order,
+				"user_id"     => $user_id,
+				"triibo_id"   => $triibo_id,
+				"order_id"    => $order_id,
+				"success_note"=> null,
+				"fail_note"   => null,
+				"log_success" => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+				"log_fail"    => "Order: #%d | User: %d | %s, failed to credit '%s'",
+				"log_type"    => "notice",
+			]
 		);
-
-		if ( $response[ "success" ] )
-			$this->mark_event_executed( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
 
 		$order->save();
 	}
@@ -791,59 +787,45 @@ class Triibo_Events
 	 */
 	private function process_subscription_renewal_item( object $order, int $product_id, int $user_id, string $triibo_id, int $order_id, float $total, bool $has_cp, bool $has_atv ) : void
 	{
-		$events = [
-			"cp"  => [
-				"has"  => $has_cp,
-				"name" => "Compra_Marketplace",
-				"args" => [
-					"Compra_Marketplace",
-					$order,
-					$triibo_id,
-					$total
-				],
-			],
-			"atv" => [
-				"has"  => $has_atv,
-				"name" => "Assinatura_Triibo_Vip",
-				"args" => [
-					self::PLANS[ $this->get_env() ][ $product_id ],
-					$order,
-					$triibo_id,
-					1
-				],
-			],
+		$label_cp  = "Compra_Marketplace";
+		$label_atv = self::PLANS[ $this->get_env() ][ $product_id ];
+
+		$event_cp  = [
+			"meta_key"     => "has_cp_{$order_id}",
+			"api_callback" => [ $this, "call_event" ],
+			"api_args"     => [ $order, $label_cp, $triibo_id, $total ],
+			"log_context"  => [],
+			"event_label"  => $label_cp,
+			"order"        => $order,
+			"user_id"      => $user_id,
+			"triibo_id"    => $triibo_id,
+			"order_id"     => $order_id,
+			"success_note" => null,
+			"fail_note"    => null,
+			"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+			"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
+			"log_type"     => "notice",
 		];
 
-		foreach ( $events as $key => $event_data )
-		{
-			if ( $event_data[ "has" ] )
-			{
-				$this->log_user_already_credited(
-					order_id : $order_id,
-					user_id  : $user_id,
-					triibo_id: $triibo_id,
-					event    : $event_data[ "name" ]
-				);
+		$event_atv = [
+			"meta_key"     => "has_atv_{$order_id}",
+			"api_callback" => [ $this, "call_event" ],
+			"api_args"     => [ $order, $label_atv, $triibo_id, 1 ],
+			"log_context"  => [],
+			"event_label"  => $label_atv,
+			"order"        => $order,
+			"user_id"      => $user_id,
+			"triibo_id"    => $triibo_id,
+			"order_id"     => $order_id,
+			"success_note" => null,
+			"fail_note"    => null,
+			"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
+			"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
+			"log_type"     => "notice",
+		];
 
-				continue;
-			}
-
-			$response = call_user_func_array( [ $this, "call_event" ], $event_data[ "args" ] );
-
-			if ( ! $response[ "success" ] )
-			{
-				$this->log_user_failed_to_credited(
-					order_id : $order_id,
-					user_id  : $user_id,
-					triibo_id: $triibo_id,
-					event    : $event_data[ "name" ]
-				);
-
-				continue;
-			}
-
-			$this->mark_event_executed( user_id: $user_id, meta_key: "has_{$key}_{$order_id}" );
-		}
+		$this->process_event( $event_cp  );
+		$this->process_event( $event_atv );
 
 		$order->save();
 	}
@@ -936,6 +918,78 @@ class Triibo_Events
 	}
 
 	/**
+	 * Generalized event processing helper.
+	 * Check meta, call API, mark as executed, log result.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param array $args
+	 *   - meta_key:     string
+	 *   - api_callback: callable
+	 *   - api_args:     array
+	 *   - log_context:  array
+	 *   - event_label:  string
+	 *   - order:        object
+	 *   - user_id:      int
+	 *   - triibo_id:    string
+	 *   - order_id:     int
+	 *   - success_note: string
+	 *   - fail_note:    string
+	 *   - log_success:  string (template)
+	 *   - log_fail:     string (template)
+	 *   - log_type:     string
+	 *
+	 * @return void
+	 */
+	private function process_event( array $args ) : void
+	{
+		extract( $args );
+
+		if ( $this->has_already_executed_event( $user_id, $meta_key ) )
+		{
+			$this->log_user_event(
+				template: $log_success,
+				level   : $log_type,
+				vars    : [
+					$order_id,
+					$user_id,
+					$triibo_id,
+					$event_label
+				],
+			);
+
+			return;
+		}
+
+		$response = call_user_func_array( $api_callback, $api_args );
+
+		if ( ! isset( $response[ "success" ] ) || ! $response[ "success" ] )
+		{
+			$this->log_user_event(
+				template: $log_fail,
+				level   : "error",
+				is_error: true,
+				vars    : [
+					$order_id,
+					$user_id,
+					$triibo_id,
+					$event_label
+				],
+			);
+
+			if ( isset( $order ) && isset( $fail_note ) )
+				$order->add_order_note( $fail_note );
+
+			return;
+		}
+
+		$this->mark_event_executed( $user_id, $meta_key );
+
+		if ( isset( $order ) && isset( $success_note ) )
+			$order->add_order_note( $success_note );
+	}
+
+	/**
 	 * Valid if is a sub-order and sends event for Triibo.
 	 *
 	 * @since 1.13.0 	Refactored
@@ -963,6 +1017,7 @@ class Triibo_Events
 			return;
 		}
 
+		// Subscription
 		if ( $this->is_processing_subscription( order_id: $order_id, new_status: $new_status ) )
 		{
 			$this->process_vip_event(
@@ -983,6 +1038,7 @@ class Triibo_Events
 			return;
 		}
 
+		// Normal purchase
 		if ( $this->is_completed_purchase( order_id: $order_id, new_status: $new_status ) )
 		{
 			$this->process_normal_purchase(
@@ -1103,39 +1159,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Call event Compra_Marketplace.
-	 *
-	 * @deprecated 1.13.0 	Use 'call_event()' instead
-	 *
-	 * @since 1.3.2 	Added return value
-	 * @since 1.1.0
-	 *
-	 * @return array
-	 */
-	private function compra_marketplace( &$order, $triibo_id, $total ) : array
-	{
-		$event = "Compra_Marketplace";
-
-		return $this->call_event( $order, $event, $triibo_id, $total );
-	}
-
-	/**
-	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3.
-	 *
-	 * @deprecated 1.13.0 	Use call_event() instead
-	 *
-	 * @since 1.3.2 	Added return value
-	 * @since 1.3.0 	Added parameter $event
-	 * @since 1.1.0
-	 *
-	 * @return array
-	 */
-	private function assinatura_tribo_vip( &$order, $triibo_id, $total, $event ) : array
-	{
-		return $this->call_event( $order, $event, $triibo_id, $total );
-	}
-
-	/**
 	 * Add note to order.
 	 *
 	 * @since 1.0.4
@@ -1170,63 +1193,6 @@ class Triibo_Events
 		}
 
 		$order->add_order_note( note: $note );
-	}
-
-	/**
-	 * Log user without account.
-	 *
-	 * @since 1.13.0
-	 *
-	 * @param int $order_id
-	 * @param int $user_id
-	 *
-	 * @return void
-	 */
-	private function log_user_without_account( $order_id, $user_id ) : void
-	{
-		$this->log(
-			is_error: true,
-			level   : "warning",
-			message : "Order: #{$order_id} | User: {$user_id} | without an account linked to Triibo"
-		);
-	}
-
-	/**
-	 * Log user already credited.
-	 *
-	 * @since 1.13.0
-	 *
-	 * @param int 		$order_id
-	 * @param int 		$user_id
-	 * @param string 	$triibo_id
-	 * @param string 	$event
-	 *
-	 * @return void
-	 */
-	private function log_user_already_credited( int $order_id, int $user_id, string $triibo_id, string $event ) : void
-	{
-		$this->log( message: "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with '{$event}'" );
-	}
-
-	/**
-	 * Log user failed to credit.
-	 *
-	 * @since 1.13.0
-	 *
-	 * @param int 		$order_id
-	 * @param int 		$user_id
-	 * @param string 	$triibo_id
-	 * @param string 	$event
-	 *
-	 * @return void
-	 */
-	private function log_user_failed_to_credited( int $order_id, int $user_id, string $triibo_id, string $event ) : void
-	{
-		$this->log(
-			is_error: true,
-			level   : "error",
-			message : "Order: #{$order_id} | {$user_id} | {$triibo_id}, failed to credit '{$event}'"
-		);
 	}
 
 	/**
