@@ -565,6 +565,111 @@ class Triibo_Events
 	}
 
 	/**
+	 * Process subscription cancellation/expiration.
+	 *
+	 * @since 1.11.0 	Renamed to `subscription_ended` from `subscription_status_cancelled`
+	 * @since 1.8.0
+	 *
+	 * @param object 	$subscription
+	 *
+	 * @return void
+	 */
+	public function subscription_ended( object $subscription ) : void
+	{
+		$subscription_id = $subscription->get_id();
+		$user_id         = $subscription->get_user_id();
+
+		foreach ( $subscription->get_items() as $item_id => $item )
+		{
+			$product_id = $item->get_product_id();
+
+			$this->log( message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
+
+			// Seu Clube.
+			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+			{
+				$token = $this->api_node->get_token( user_id: $user_id );
+
+				if ( is_null( $token ) )
+				{
+					$this->log(
+						level   : "error",
+						message : "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token",
+						is_error: true
+					);
+					break;
+				}
+
+				$order = wc_get_order( the_order: $subscription->get_parent_id() );
+
+				$this->toggle_user_subscription(
+					order     : $order,
+					action    : "delete",
+					user_id   : $user_id,
+					product_id: $product_id,
+					token     : $token
+				);
+
+				$order->save();
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Handle subscription renewal event.
+	 *
+	 * @since 2.0.0 	Refactored
+	 * @since 1.2.0
+	 *
+	 * @param object 	$subscription
+	 * @param object 	$order
+	 *
+	 * @return void
+	 */
+	public function subscription_renewal( object $subscription, object $order ) : void
+	{
+		$total     = $order->get_total();
+		$order_id  = $order->get_id();
+
+		if ( ! $this->is_original_order( order: $order ) )
+			return;
+
+		$user_id   = $order->get_user_id();
+		$triibo_id = $this->get_user_phone( user_id: $user_id );
+
+		if ( empty( $triibo_id ) )
+		{
+			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
+			return;
+		}
+
+		$has_cp    = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}"  );
+		$has_atv   = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
+
+		foreach ( $order->get_items() as $item )
+		{
+			$product_id = $item->get_product_id();
+
+			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
+			{
+				$this->process_subscription_renewal_item(
+					order     : $order,
+					product_id: $product_id,
+					user_id   : $user_id,
+					triibo_id : $triibo_id,
+					order_id  : $order_id,
+					total     : $total,
+					has_cp    : $has_cp,
+					has_atv   : $has_atv
+				);
+
+				break;
+			}
+		}
+	}
+
+	/**
 	 * Check if the order is an original order.
 	 *
 	 * @since 2.0.0
@@ -1051,111 +1156,6 @@ class Triibo_Events
 
 		if ( isset( $order ) && isset( $success_note ) )
 			$order->add_order_note( $success_note );
-	}
-
-	/**
-	 * Process subscription cancellation/expiration.
-	 *
-	 * @since 1.11.0 	Renamed to `subscription_ended` from `subscription_status_cancelled`
-	 * @since 1.8.0
-	 *
-	 * @param object 	$subscription
-	 *
-	 * @return void
-	 */
-	public function subscription_ended( object $subscription ) : void
-	{
-		$subscription_id = $subscription->get_id();
-		$user_id         = $subscription->get_user_id();
-
-		foreach ( $subscription->get_items() as $item_id => $item )
-		{
-			$product_id = $item->get_product_id();
-
-			$this->log( message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
-
-			// Seu Clube.
-			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
-			{
-				$token = $this->api_node->get_token( user_id: $user_id );
-
-				if ( is_null( $token ) )
-				{
-					$this->log(
-						level   : "error",
-						message : "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token",
-						is_error: true
-					);
-					break;
-				}
-
-				$order = wc_get_order( the_order: $subscription->get_parent_id() );
-
-				$this->toggle_user_subscription(
-					order     : $order,
-					action    : "delete",
-					user_id   : $user_id,
-					product_id: $product_id,
-					token     : $token
-				);
-
-				$order->save();
-				break;
-			}
-		}
-	}
-
-	/**
-	 * Handle subscription renewal event.
-	 *
-	 * @since 2.0.0 	Refactored
-	 * @since 1.2.0
-	 *
-	 * @param object 	$subscription
-	 * @param object 	$order
-	 *
-	 * @return void
-	 */
-	public function subscription_renewal( object $subscription, object $order ) : void
-	{
-		$total     = $order->get_total();
-		$order_id  = $order->get_id();
-
-		if ( ! $this->is_original_order( order: $order ) )
-			return;
-
-		$user_id   = $order->get_user_id();
-		$triibo_id = $this->get_user_phone( user_id: $user_id );
-
-		if ( empty( $triibo_id ) )
-		{
-			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
-			return;
-		}
-
-		$has_cp    = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}"  );
-		$has_atv   = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_atv_{$order_id}" );
-
-		foreach ( $order->get_items() as $item )
-		{
-			$product_id = $item->get_product_id();
-
-			if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
-			{
-				$this->process_subscription_renewal_item(
-					order     : $order,
-					product_id: $product_id,
-					user_id   : $user_id,
-					triibo_id : $triibo_id,
-					order_id  : $order_id,
-					total     : $total,
-					has_cp    : $has_cp,
-					has_atv   : $has_atv
-				);
-
-				break;
-			}
-		}
 	}
 
 	/**
