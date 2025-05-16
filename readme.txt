@@ -1,5 +1,11 @@
 == Changelog ==
 
+= 2.0.0 - 2025/05/16 =
+
+- Reorganização do código.
+- Maior modularização para melhor legibilidade e manutenção.
+- Completa documentação do código.
+
 = 1.12.0 - 2025/05/15 =
 
 - Adicionado método que retorna lista de eventos disponíveis.
