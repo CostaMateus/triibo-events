@@ -580,99 +580,6 @@ class Triibo_Events
 	}
 
 	/**
-	 * Check if the order is an original order.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param object 	$order
-	 *
-	 * @return boolean
-	 */
-	private function is_original_order( object $order ) : bool
-	{
-		return $order->get_parent_id() == 0;
-	}
-
-	/**
-	 * Get user phone number.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param int 	$user_id
-	 *
-	 * @return string
-	 */
-	private function get_user_phone( int $user_id ) : string
-	{
-		$triibo_phone = get_user_meta( user_id: $user_id, key: "_triibo_phone", single: true );
-
-		if ( empty( $triibo_phone ) )
-			$triibo_phone = get_user_meta( user_id: $user_id, key: "triiboId_phone", single: true );
-
-		return preg_replace( "/\D/", "", $triibo_phone );
-	}
-
-	/**
-	 * Check if the order is a processing subscription.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param int 		$order_id
-	 * @param string 	$new_status
-	 *
-	 * @return boolean
-	 */
-	private function is_processing_subscription( int $order_id, string $new_status ) : bool
-	{
-		return $new_status === "processing" && wcs_order_contains_subscription( order: $order_id );
-	}
-
-	/**
-	 * Check if the order is a completed purchase.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param int 		$order_id
-	 * @param string 	$new_status
-	 *
-	 * @return boolean
-	 */
-	private function is_completed_purchase( int $order_id, string $new_status ) : bool
-	{
-		return $new_status === "completed" && !wcs_order_contains_subscription( order: $order_id );
-	}
-
-	/**
-	 * Check if the user has already executed the event.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param int 		$user_id
-	 * @param string 	$meta_key
-	 *
-	 * @return boolean
-	 */
-	private function has_already_executed_event( int $user_id, string $meta_key ) : bool
-	{
-		return ! empty( get_user_meta( user_id: $user_id, key: $meta_key, single: true ) );
-	}
-
-	/**
-	 * Mark the event as executed.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param int 		$user_id
-	 * @param string 	$meta_key
-	 *
-	 * @return void
-	 */
-	private function mark_event_executed( int $user_id, string $meta_key ) : void
-	{
-		add_user_meta( user_id: $user_id, meta_key: $meta_key, meta_value: true, unique: true );
-	}
-
-	/**
 	 * Process VIP event.
 	 *
 	 * @since 2.0.0
@@ -1072,6 +979,99 @@ class Triibo_Events
 	}
 
 	/**
+	 * Check if the order is an original order.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param object 	$order
+	 *
+	 * @return boolean
+	 */
+	private function is_original_order( object $order ) : bool
+	{
+		return $order->get_parent_id() == 0;
+	}
+
+	/**
+	 * Get user phone number.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int 	$user_id
+	 *
+	 * @return string
+	 */
+	private function get_user_phone( int $user_id ) : string
+	{
+		$triibo_phone = get_user_meta( user_id: $user_id, key: "_triibo_phone", single: true );
+
+		if ( empty( $triibo_phone ) )
+			$triibo_phone = get_user_meta( user_id: $user_id, key: "triiboId_phone", single: true );
+
+		return preg_replace( "/\D/", "", $triibo_phone );
+	}
+
+	/**
+	 * Check if the order is a processing subscription.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int 		$order_id
+	 * @param string 	$new_status
+	 *
+	 * @return boolean
+	 */
+	private function is_processing_subscription( int $order_id, string $new_status ) : bool
+	{
+		return $new_status === "processing" && wcs_order_contains_subscription( order: $order_id );
+	}
+
+	/**
+	 * Check if the order is a completed purchase.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int 		$order_id
+	 * @param string 	$new_status
+	 *
+	 * @return boolean
+	 */
+	private function is_completed_purchase( int $order_id, string $new_status ) : bool
+	{
+		return $new_status === "completed" && !wcs_order_contains_subscription( order: $order_id );
+	}
+
+	/**
+	 * Check if the user has already executed the event.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int 		$user_id
+	 * @param string 	$meta_key
+	 *
+	 * @return boolean
+	 */
+	private function has_already_executed_event( int $user_id, string $meta_key ) : bool
+	{
+		return ! empty( get_user_meta( user_id: $user_id, key: $meta_key, single: true ) );
+	}
+
+	/**
+	 * Mark the event as executed.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param int 		$user_id
+	 * @param string 	$meta_key
+	 *
+	 * @return void
+	 */
+	private function mark_event_executed( int $user_id, string $meta_key ) : void
+	{
+		add_user_meta( user_id: $user_id, meta_key: $meta_key, meta_value: true, unique: true );
+	}
+
+	/**
 	 * Get organization IDs and names.
 	 *
 	 * @since 2.0.0
@@ -1156,43 +1156,6 @@ class Triibo_Events
 		$order->add_order_note( note: $note );
 
 		return false;
-	}
-
-	/**
-	 * Add note to order.
-	 *
-	 * @since 1.0.4
-	 *
-	 * @param object 	$order
-	 * @param string 	$triibo_id
-	 * @param string 	$event
-	 * @param array 	$response
-	 *
-	 * @return void
-	 */
-	private function add_note( object &$order, string $triibo_id, string $event, array $response ) : void
-	{
-		$note = "Evento: {$event}";
-
-		if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
-		{
-			$movement_id  = $response[ "data" ][ "movementID" ];
-			$note        .= "\nCréditos/cupons adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
-		}
-		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
-		{
-			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
-		}
-		elseif ( !$response[ "success" ] && isset( $response[ "event" ] ) )
-		{
-			$note        .= "\nEvento não suportado\nConta: {$triibo_id}\nErro: MKT";
-		}
-		else
-		{
-			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
-		}
-
-		$order->add_order_note( note: $note );
 	}
 
 	/**
@@ -1321,6 +1284,43 @@ class Triibo_Events
 
 		$note .= $failure_message;
 		$note .= "\n\nConta: {$uid}\nErro: API";
+
+		$order->add_order_note( note: $note );
+	}
+
+	/**
+	 * Add note to order.
+	 *
+	 * @since 1.0.4
+	 *
+	 * @param object 	$order
+	 * @param string 	$triibo_id
+	 * @param string 	$event
+	 * @param array 	$response
+	 *
+	 * @return void
+	 */
+	private function add_note( object &$order, string $triibo_id, string $event, array $response ) : void
+	{
+		$note = "Evento: {$event}";
+
+		if ( $response[ "success" ] && isset( $response[ "data" ] ) && $response[ "data" ][ "success" ] )
+		{
+			$movement_id  = $response[ "data" ][ "movementID" ];
+			$note        .= "\nCréditos/cupons adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
+		}
+		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
+		{
+			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
+		}
+		elseif ( !$response[ "success" ] && isset( $response[ "event" ] ) )
+		{
+			$note        .= "\nEvento não suportado\nConta: {$triibo_id}\nErro: MKT";
+		}
+		else
+		{
+			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
+		}
 
 		$order->add_order_note( note: $note );
 	}
