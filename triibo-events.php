@@ -57,12 +57,11 @@ class Triibo_Events
 			816854 => "Assinatura_Triibo_Vip_Plano_3"
 		],
 		"prd" => [
-			939930 => "Assinatura_Triibo_Vip",         // product_id => event_ATV Plano 1
-			957852 => "Assinatura_Triibo_Vip_Plano_2", // product_id => event_ATV Plano 2
-			957855 => "Assinatura_Triibo_Vip_Plano_3", // product_id => event_ATV Plano 3
-
-			// New plans
-			981120 => "Assinatura_Triibo_Vip_Plano_4", // Also trigger 'SEU_CLUBE'
+			// product_id => event_atv
+			939930 => "Assinatura_Triibo_Vip",
+			957852 => "Assinatura_Triibo_Vip_Plano_2",
+			957855 => "Assinatura_Triibo_Vip_Plano_3",
+			981120 => "Assinatura_Triibo_Vip_Plano_4", // trigger 'SEU_CLUBE'
 			981121 => "Assinatura_Triibo_Vip_Plano_5",
 			981122 => "Assinatura_Triibo_Vip_Plano_6",
 		]
@@ -79,21 +78,25 @@ class Triibo_Events
 	const ORGS = [
 		"hml" => [
 			"add" => [
-				"id"   => "-Ngta5dXbnSxCJravalh", // vip
+				// vip
+				"id"   => "-Ngta5dXbnSxCJravalh",
 				"name" => "Triibo V.I.P",
 			],
 			"del" => [
-				"id"   => "mlmtgPFBctdnJeJ9Bz4i", // normal
+				// normal
+				"id"   => "mlmtgPFBctdnJeJ9Bz4i",
 				"name" => "Triibo",
 			]
 		],
 		"prd" => [
 			"add" => [
-				"id"   => "-NVUhxocgIAf_vgFmYvx", // vip
+				// vip
+				"id"   => "-NVUhxocgIAf_vgFmYvx",
 				"name" => "Triibo V.I.P",
 			],
 			"del" => [
-				"id"   => "triibo",               // normal
+				// normal
+				"id"   => "triibo",
 				"name" => "Triibo",
 			]
 		]
@@ -110,12 +113,23 @@ class Triibo_Events
 			114308, // assinatura teste
 		],
 		"prd" => [
-			981120, // Assinatura_Triibo_Vip_Plano_4 // Also trigger 'PLANS'
-			986463, // Club do Golfista
-			986464, // Morro Experience
-			987475, // Projeto Pedalar
-			1022143, // Conexão Feminina - mensal
-			// 1022146, // Conexão Feminina - anual
+			// Assinatura_Triibo_Vip_Plano_4
+			981120,
+
+			// Club do Golfista
+			986463,
+
+			// Morro Experience
+			986464,
+
+			// Projeto Pedalar
+			987475,
+
+			// Conexão Feminina - mensal
+			1022143,
+
+			// Conexão Feminina - anual
+			// 1022146,
 		],
 	];
 
@@ -144,7 +158,7 @@ class Triibo_Events
 	 *
 	 * @var null|Triibo_Api_Gateway
 	 */
-	protected ?Triibo_Api_Gateway $api = null;
+	protected ?Triibo_Api_Gateway $api_gate = null;
 
 	/**
 	 * Triibo Api Services - Node.
@@ -196,7 +210,7 @@ class Triibo_Events
 			add_action( "woocommerce_subscription_status_expired",           [ $this, "subscription_ended"   ], 10, 1 );
 
 			$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
-			$this->api      = new Triibo_Api_Gateway();
+			$this->api_gate = new Triibo_Api_Gateway();
 
 			/**
 			 * @since 1.8.0
@@ -218,8 +232,7 @@ class Triibo_Events
 	 */
 	private function get_env() : string
 	{
-		return ( get_option( "home" ) === "https://marketplace.triibo.com.br" )
-				? "prd" : "hml";
+		return ( get_option( option: "home" ) === "https://marketplace.triibo.com.br" ) ? "prd" : "hml";
 	}
 
 	/**
@@ -232,7 +245,7 @@ class Triibo_Events
 	 */
 	private function call_event( $event, &$order, $triibo_id, $total ) : array
 	{
-		$response = $this->api->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
+		$response = $this->api_gate->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
 
 		/**
 		 * Added event field to log.
@@ -269,7 +282,7 @@ class Triibo_Events
 	 */
 	public static function triibo_api_services_missing_notice() : void
 	{
-		include_once dirname( __FILE__ ) . "/includes/admin/views/html-notice-missing-triibo_api_services.php";
+		include_once dirname( path: __FILE__ ) . "/includes/admin/views/html-notice-missing-triibo_api_services.php";
 	}
 
 	/**
@@ -281,9 +294,9 @@ class Triibo_Events
 	 *
 	 * @return array
 	 */
-	public static function plugin_action_links( $links ) : array
+	public static function plugin_action_links( array $links ) : array
     {
-        $url            = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
+        $url            = esc_url( url: admin_url( path: "admin.php?page=" . self::DOMAIN . "-settings" ) );
         $text           = __( "Configurações", self::DOMAIN );
 		$plugin_links   = [];
 		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
@@ -306,9 +319,9 @@ class Triibo_Events
 		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) )
 		{
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
-				"custom_order_tables",
-				__FILE__,
-				true
+				feature_id            : "custom_order_tables",
+				plugin_file           : __FILE__,
+				positive_compatibility: true
 			);
 		}
 	}
@@ -324,23 +337,23 @@ class Triibo_Events
 	 *
 	 * @return array
 	 */
-	public function plugin_row_meta( $plugin_meta, $plugin_file, $plugin_data ) : array
+	public function plugin_row_meta( array $plugin_meta, string $plugin_file, array $plugin_data ) : array
 	{
-		$path = path_join( WP_PLUGIN_DIR, $plugin_file );
+		$path = path_join( base: WP_PLUGIN_DIR, path: $plugin_file );
 
 		if ( DIRECTORY_SEPARATOR == "\\" )
 			$path = str_replace( "/", "\\", $path );
 
         if ( __FILE__ === $path )
 		{
-            $url = plugins_url( "readme.txt", __FILE__ );
+            $url = plugins_url( path: "readme.txt", plugin: __FILE__ );
 
             $plugin_meta[] = sprintf(
                 "<a href='%s' class='thickbox open-plugin-details-modal' aria-label='%s' data-title='%s'>%s</a>",
                 add_query_arg( "TB_iframe", "true", $url ),
-                esc_attr( sprintf( __( "More information about %s" ), $plugin_data[ "Name" ] ) ),
-                esc_attr( $plugin_data[ "Name" ] ),
-                __( "Histórico de alterações" )
+                esc_attr( text: sprintf( __( "More information about %s" ), $plugin_data[ "Name" ] ) ),
+                esc_attr( text: $plugin_data[ "Name" ] ),
+                __( text: "Histórico de alterações" )
             );
         }
 
@@ -357,12 +370,12 @@ class Triibo_Events
 	public function add_submenu_page() : void
 	{
 		add_submenu_page(
-			Triibo_Api_Services::get_name(),
-			"Triibo Eventos",
-			"Eventos",
-			"manage_options",
-			self::DOMAIN . "-settings",
-			[ $this, "display_admin_menu_settings" ]
+			parent_slug: Triibo_Api_Services::get_name(),
+			page_title : "Triibo Eventos",
+			menu_title : "Eventos",
+			capability : "manage_options",
+			menu_slug  : self::DOMAIN . "-settings",
+			callback   : [ $this, "display_admin_menu_settings" ]
 		);
 	}
 
@@ -375,7 +388,7 @@ class Triibo_Events
 	 */
 	public function display_admin_menu_settings() : void
 	{
-		include_once dirname( __FILE__ ) . "/templates/admin-page.php";
+		include_once dirname( path: __FILE__ ) . "/templates/admin-page.php";
 	}
 
 	/**
@@ -387,7 +400,7 @@ class Triibo_Events
 	 */
 	public function add_btn() : void
 	{
-        $url  = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
+        $url  = esc_url( url: admin_url( path: "admin.php?page=" . self::DOMAIN . "-settings" ) );
 		$text = __( "Configurações", self::DOMAIN );
 		$link = "<a href='{$url}' >{$text}</a>";
 
@@ -415,7 +428,7 @@ class Triibo_Events
 	 *
 	 * @return boolean
 	 */
-	private function is_original_order( $order ) : bool
+	private function is_original_order( object $order ) : bool
 	{
 		return $order->get_parent_id() == 0;
 	}
@@ -429,12 +442,12 @@ class Triibo_Events
 	 *
 	 * @return string
 	 */
-	private function get_user_phone( $user_id ) : string
+	private function get_user_phone( int $user_id ) : string
 	{
-		$triibo_phone = get_user_meta( $user_id, "_triibo_phone", true );
+		$triibo_phone = get_user_meta( user_id: $user_id, key: "_triibo_phone", single: true );
 
 		if ( empty( $triibo_phone ) )
-			$triibo_phone = get_user_meta( $user_id, "triiboId_phone", true );
+			$triibo_phone = get_user_meta( user_id: $user_id, key: "triiboId_phone", single: true );
 
 		return preg_replace( "/\D/", "", $triibo_phone );
 	}
@@ -464,9 +477,9 @@ class Triibo_Events
 	 *
 	 * @return boolean
 	 */
-	private function is_processing_subscription( $order_id, $new_status ) : bool
+	private function is_processing_subscription( int $order_id, string $new_status ) : bool
 	{
-		return $new_status === "processing" && wcs_order_contains_subscription( $order_id );
+		return $new_status === "processing" && wcs_order_contains_subscription( order: $order_id );
 	}
 
 	/**
@@ -479,9 +492,9 @@ class Triibo_Events
 	 *
 	 * @return boolean
 	 */
-	private function is_completed_purchase( $order_id, $new_status ) : bool
+	private function is_completed_purchase( int $order_id, string $new_status ) : bool
 	{
-		return $new_status === "completed" && !wcs_order_contains_subscription( $order_id );
+		return $new_status === "completed" && !wcs_order_contains_subscription( order: $order_id );
 	}
 
 	/**
@@ -494,9 +507,9 @@ class Triibo_Events
 	 *
 	 * @return boolean
 	 */
-	private function has_already_executed_event( $user_id, $meta_key ) : bool
+	private function has_already_executed_event( int $user_id, string $meta_key ) : bool
 	{
-		return !empty( get_user_meta( $user_id, $meta_key, true ) );
+		return ! empty( get_user_meta( user_id: $user_id, key: $meta_key, single: true ) );
 	}
 
 	/**
@@ -509,9 +522,9 @@ class Triibo_Events
 	 *
 	 * @return void
 	 */
-	private function mark_event_executed( $user_id, $meta_key ) : void
+	private function mark_event_executed( int $user_id, string $meta_key ) : void
 	{
-		add_user_meta( $user_id, $meta_key, true, true );
+		add_user_meta( user_id: $user_id, meta_key: $meta_key, meta_value: true, unique: true );
 	}
 
 	/**
@@ -520,12 +533,12 @@ class Triibo_Events
 	 * @param object 	$order
 	 * @param int 		$user_id
 	 * @param int 		$order_id
-	 * @param string 	$triibo_phone
+	 * @param string 	$triibo_id
 	 * @param float 	$total
 	 *
 	 * @return void
 	 */
-	private function process_vip_event( $order, $user_id, $order_id, $triibo_phone, $total ) : void
+	private function process_vip_event( object $order, int $user_id, int $order_id, string $triibo_id, float $total ) : void
 	{
 		foreach ( $order->get_items() as $item )
 		{
@@ -538,20 +551,20 @@ class Triibo_Events
 
 				if ( !$has_cp )
 				{
-					$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+					$response = $this->compra_marketplace( $order, $triibo_id, $total );
 
 					if ( $response[ "success" ] )
 						$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
 				}
 				else
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
 				}
 
 				if ( !$has_atv )
 				{
 					$event    = self::PLANS[ $this->get_env() ][ $product_id ];
-					$response = $this->assinatura_tribo_vip( $order, $triibo_phone, 1, $event );
+					$response = $this->assinatura_tribo_vip( $order, $triibo_id, 1, $event );
 
 					if ( $response[ "success" ] )
 					{
@@ -561,7 +574,7 @@ class Triibo_Events
 				}
 				else
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Assinatura_Triibo_Vip'" );
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Assinatura_Triibo_Vip'" );
 				}
 
 				if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
@@ -581,11 +594,11 @@ class Triibo_Events
 	 * @param object 	$order
 	 * @param int 		$user_id
 	 * @param int 		$order_id
-	 * @param string 	$triibo_phone
+	 * @param string 	$triibo_id
 	 *
 	 * @return void
 	 */
-	private function process_seu_clube_event( $order, $user_id, $order_id, $triibo_phone ) : void
+	private function process_seu_clube_event( object $order, int $user_id, int $order_id, string $triibo_id ) : void
 	{
 		foreach ( $order->get_items() as $item )
 		{
@@ -597,7 +610,7 @@ class Triibo_Events
 
 				if ( $has_seu_clube )
 				{
-					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Seu_Clube'" );
+					$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Seu_Clube'" );
 					break;
 				}
 
@@ -605,7 +618,7 @@ class Triibo_Events
 
 				if ( is_null( $token ) )
 				{
-					$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, unable to generate Node API token", true );
+					$this->log( "error", "Order: #{$order_id} | {$user_id} | {$triibo_id}, unable to generate Node API token", true );
 					break;
 				}
 
@@ -626,22 +639,22 @@ class Triibo_Events
 	 * @param object 	$order
 	 * @param int 		$user_id
 	 * @param int 		$order_id
-	 * @param string 	$triibo_phone
+	 * @param string 	$triibo_id
 	 * @param float 	$total
 	 *
 	 * @return void
 	 */
-	private function process_normal_purchase( $order, $user_id, $order_id, $triibo_phone, $total ) : void
+	private function process_normal_purchase( object $order, int $user_id, int $order_id, string $triibo_id, float $total ) : void
 	{
-		$has_cp = $this->has_already_executed_event( $user_id, "has_cp_{$order_id}" );
+		$has_cp = $this->has_already_executed_event( user_id: $user_id, meta_key: "has_cp_{$order_id}" );
 
 		if ( $has_cp )
 		{
-			$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_phone}, user has already been credited with 'Compra_Marketplace'" );
+			$this->log( "info", "Order: #{$order_id} | {$user_id} | {$triibo_id}, user has already been credited with 'Compra_Marketplace'" );
 			return;
 		}
 
-		$response = $this->compra_marketplace( $order, $triibo_phone, $total );
+		$response = $this->compra_marketplace( $order, $triibo_id, $total );
 
 		if ( $response[ "success" ] )
 			$this->mark_event_executed( $user_id, "has_cp_{$order_id}" );
@@ -652,34 +665,62 @@ class Triibo_Events
 	/**
 	 * Valid if is a sub-order and sends event for Triibo.
 	 *
-	 * @since 1.13.0 	Refactored to use new methods
+	 * @since 1.13.0 	Refactored
 	 * @since 1.1.0 	Rebuilt method to work with different statuses
 	 * @since 1.0.0
 	 *
+	 * @param int 		$order_id
+	 * @param string 	$old_status
+	 * @param string 	$new_status
+	 * @param object 	$order
+	 *
 	 * @return void
 	 */
-	public function order_status_change( $order_id, $old_status, $new_status, $order ) : void
+	public function order_status_change( int $order_id, string $old_status, string $new_status, object $order ) : void
 	{
 		if ( ! $this->is_original_order( $order ) )
 			return;
 
-		$user_id      = $order->get_user_id();
-		$triibo_phone = $this->get_user_phone( $user_id );
+		$user_id   = $order->get_user_id();
+		$triibo_id = $this->get_user_phone( user_id: $user_id );
 
-		if ( empty( $triibo_phone ) )
+		if ( empty( $triibo_id ) )
 		{
-			$this->log_user_without_account( $order_id, $user_id );
+			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
 			return;
 		}
 
-		if ( $this->is_processing_subscription( $order_id, $new_status ) )
+		if ( $this->is_processing_subscription( order_id: $order_id, new_status: $new_status ) )
 		{
-			$this->process_vip_event( $order, $user_id, $order_id, $triibo_phone, $order->get_total() );
-			$this->process_seu_clube_event( $order, $user_id, $order_id, $triibo_phone );
+			$this->process_vip_event(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id,
+				total    : $order->get_total()
+			);
+
+			$this->process_seu_clube_event(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id
+			);
+
+			return;
 		}
-		elseif ( $this->is_completed_purchase( $order_id, $new_status ) )
+
+		if ( $this->is_completed_purchase( order_id: $order_id, new_status: $new_status ) )
 		{
-			$this->process_normal_purchase( $order, $user_id, $order_id, $triibo_phone, $order->get_total() );
+			$this->process_normal_purchase(
+				order    : $order,
+				user_id  : $user_id,
+				order_id : $order_id,
+				triibo_id: $triibo_id,
+				total    : $order->get_total()
+			);
+
+			return;
 		}
 	}
 
@@ -693,7 +734,7 @@ class Triibo_Events
 	 *
 	 * @return void
 	 */
-	public function subscription_ended( $subscription ) : void
+	public function subscription_ended( object $subscription ) : void
 	{
 		$subscription_id = $subscription->get_id();
 		$user_id         = $subscription->get_user_id();
@@ -804,20 +845,24 @@ class Triibo_Events
 	/**
 	 * Call event Compra_Marketplace.
 	 *
+	 * @deprecated 1.13.0 	Use 'call_event()' instead
+	 *
 	 * @since 1.3.2 	Added return value
 	 * @since 1.1.0
 	 *
 	 * @return array
 	 */
-	public function compra_marketplace( &$order, $triibo_id, $total ) : array
+	private function compra_marketplace( &$order, $triibo_id, $total ) : array
 	{
 		$event = "Compra_Marketplace";
 
-		return $this->call_event( $event, $order, $triibo_id, $total );
+		return $this->call_event( $order, $event, $triibo_id, $total );
 	}
 
 	/**
 	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3.
+	 *
+	 * @deprecated 1.13.0 	Use call_event() instead
 	 *
 	 * @since 1.3.2 	Added return value
 	 * @since 1.3.0 	Added parameter $event
@@ -825,9 +870,9 @@ class Triibo_Events
 	 *
 	 * @return array
 	 */
-	public function assinatura_tribo_vip( &$order, $triibo_id, $total, $event ) : array
+	private function assinatura_tribo_vip( &$order, $triibo_id, $total, $event ) : array
 	{
-		return $this->call_event( $event, $order, $triibo_id, $total );
+		return $this->call_event( $order, $event, $triibo_id, $total );
 	}
 
 	/**
@@ -835,9 +880,14 @@ class Triibo_Events
 	 *
 	 * @since 1.0.4
 	 *
+	 * @param object 	$order
+	 * @param string 	$triibo_id
+	 * @param string 	$event
+	 * @param array 	$response
+	 *
 	 * @return void
 	 */
-	public function add_note( &$order, $triibo_id, $event, $response ) : void
+	private function add_note( object &$order, string $triibo_id, string $event, array $response ) : void
 	{
 		$note = "Evento: {$event}";
 
@@ -859,7 +909,7 @@ class Triibo_Events
 			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: MKT";
 		}
 
-		$order->add_order_note( $note );
+		$order->add_order_note( note: $note );
 	}
 
     /**
@@ -912,7 +962,7 @@ class Triibo_Events
 		 * Add org to user.
 		 * Triibo VIP.
 		 */
-		$response = $this->api->add_org( uid: $uid, org_id: $id_add );
+		$response = $this->api_gate->add_org( uid: $uid, org_id: $id_add );
 
 		if ( !$response[ "success" ] )
 		{
@@ -932,7 +982,7 @@ class Triibo_Events
 		 * Remove org from user.
 		 * Triibo.
 		 */
-		$response = $this->api->del_org( uid: $uid, org_id: $id_del );
+		$response = $this->api_gate->del_org( uid: $uid, org_id: $id_del );
 
 		if ( !$response[ "success" ] )
 		{
@@ -955,11 +1005,13 @@ class Triibo_Events
 	/**
 	 * Add user subscription Seu Clube.
 	 *
+	 * @deprecated 1.13.0 	Use 'toggle_user_subscription()' instead
+	 *
 	 * @since 1.8.0
 	 *
 	 * @return void
 	 */
-	public function add_user_subscription( $user_id, &$order, $product_id, $token ) : void
+	private function add_user_subscription( $user_id, &$order, $product_id, $token ) : void
 	{
 		$note     = "Evento: Assinatura Seu Clube";
 
@@ -993,11 +1045,13 @@ class Triibo_Events
 	/**
 	 * Delete user subscription Seu Clube.
 	 *
+	 * @deprecated 1.13.0 	Use 'toggle_user_subscription()' instead
+	 *
 	 * @since 1.8.0
 	 *
 	 * @return void
 	 */
-	public function del_user_subscription( $user_id, &$subscription, $product_id, $token ) : void
+	private function del_user_subscription( $user_id, &$subscription, $product_id, $token ) : void
 	{
 		$note     = "Evento: Assinatura Seu Clube";
 
@@ -1052,7 +1106,11 @@ class Triibo_Events
  *
  * @since 1.0.0
  */
-add_action( "plugins_loaded", [ "Triibo_Events", "get_instance" ], 222 );
+add_action(
+	hook_name: "plugins_loaded",
+	callback : [ "Triibo_Events", "get_instance" ],
+	priority : 222
+);
 
 /**
  * Filter to get valid events.
@@ -1061,7 +1119,10 @@ add_action( "plugins_loaded", [ "Triibo_Events", "get_instance" ], 222 );
  *
  * @return array
  */
-add_filter( "triibo_events_valid_events", function( $events )
-{
-	return Triibo_Events::get_valid_events();
-} );
+add_filter(
+	hook_name: "triibo_events_valid_events",
+	callback : function( $events )
+	{
+		return Triibo_Events::get_valid_events();
+	}
+);
