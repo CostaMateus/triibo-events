@@ -1,19 +1,21 @@
 <?php
+
 /**
  * Plugin Name: 			#Triibo_Eventos
  * Plugin URI: 				https://triibo.com.br
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.11.0
+ * Version: 				1.12.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
  * WC requires at least: 	8.0
  * WC tested up to: 		8.2
  *
- * @package 	Triibo_Events
- * @version 	1.11.0
+ * @package Triibo_Events
+ *
+ * @version 1.12.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -24,28 +26,31 @@ class Triibo_Events
 	/**
 	 * Plugin version.
 	 *
-	 * @since 	1.0.0
-	 * @var 	string
+	 * @since 1.0.0
+	 *
+	 * @var string
 	 */
-	const VERSION = "1.11.0";
+	const VERSION = "1.12.0";
 
 	/**
 	 * Plugin domain.
 	 *
-	 * @since 	1.0.0
-	 * @var 	string
+	 * @since 1.0.0
+	 *
+	 * @var string
 	 */
-	const DOMAIN  = "triibo_events";
+	const DOMAIN = "triibo_events";
 
 	/**
 	 * Subscription Triibo VIP.
 	 *
-	 * @since 	1.6.0 Added new plans.
-	 * @since 	1.5.0 Added env.
-	 * @since 	1.3.0
-	 * @var 	array
+	 * @since 1.6.0 	Added new plans
+	 * @since 1.5.0 	Added env
+	 * @since 1.3.0
+	 *
+	 * @var array
 	 */
-	const PLANS   = [
+	const PLANS = [
 		"hml" => [
 			816851 => "Assinatura_Triibo_Vip",
 			816853 => "Assinatura_Triibo_Vip_Plano_2",
@@ -66,11 +71,12 @@ class Triibo_Events
 	/**
 	 * Orgs according to the env.
 	 *
-	 * @since 	1.5.2 	Added 'id' and 'name' indexes.
-	 * @since 	1.5.0
-	 * @var 	array
+	 * @since 1.5.2 	Added 'id' and 'name' indexes
+	 * @since 1.5.0
+	 *
+	 * @var array
 	 */
-	const ORGS    = [
+	const ORGS = [
 		"hml" => [
 			"add" => [
 				"id"   => "-Ngta5dXbnSxCJravalh", // vip
@@ -94,9 +100,10 @@ class Triibo_Events
 	];
 
 	/**
-	 * @since 	1.10.0 	Added product 981120.
-	 * @since 	1.8.0
-	 * @var 	array
+	 * @since 1.10.0 	Added product 981120
+	 * @since 1.8.0
+	 *
+	 * @var array
 	 */
 	const SEU_CLUBE = [
 		"hml" => [
@@ -115,50 +122,47 @@ class Triibo_Events
 	/**
 	 * Instance of this class.
 	 *
-	 * @since 	1.0.0
-	 * @var 	object
+	 * @since 1.0.0
+	 *
+	 * @var null|Triibo_Events
 	 */
-	protected static $instance = null;
+	protected static ?Triibo_Events $instance = null;
 
 	/**
 	 * WC Logger.
 	 *
-	 * @since 	1.0.0
-	 * @var 	wc_get_logger|WC_Logger
+	 * @since 1.0.0
+	 *
+	 * @var null|WC_Logger
 	 */
-	protected $log;
+	protected ?WC_Logger $log = null;
 
 	/**
 	 * Triibo Api Services - Gateway.
 	 *
-	 * @since 	1.0.0
-	 * @var 	Triibo_Api_Gateway
+	 * @since 1.0.0
+	 *
+	 * @var null|Triibo_Api_Gateway
 	 */
-	protected $api;
+	protected ?Triibo_Api_Gateway $api = null;
 
 	/**
 	 * Triibo Api Services - Node.
 	 *
-	 * @since 	1.8.0
-	 * @var 	Triibo_Api_Node
-	 */
-	protected $api_node;
-
-	/**
-	 * Environment.
+	 * @since 1.8.0
 	 *
-	 * @var 	string
+	 * @var null|Triibo_Api_Node
 	 */
-	protected $env;
+	protected ?Triibo_Api_Node $api_node = null;
 
 	/**
 	 * Construct.
 	 *
-	 * @since 	1.8.0 	Added Triibo_Api_Node.
-	 * @since 	1.7.0 	Added HPOS compatibility declaration.
-	 * @since 	1.5.0 	Added var $env.
-	 * @since 	1.4.0 	Added plugin change history.
-	 * @since 	1.0.0
+	 * @since 1.8.0 	Added Triibo_Api_Node
+	 * @since 1.7.0 	Added HPOS compatibility declaration
+	 * @since 1.5.0 	Added var $env
+	 * @since 1.4.0 	Added plugin change history
+	 * @since 1.0.0
 	 */
 	private function __construct()
     {
@@ -195,11 +199,6 @@ class Triibo_Events
 			$this->api      = new Triibo_Api_Gateway();
 
 			/**
-			 * @since 1.5.0
-			 */
-			$this->env      = $this->get_env();
-
-			/**
 			 * @since 1.8.0
 			 */
 			$this->api_node = new Triibo_Api_Node();
@@ -213,10 +212,11 @@ class Triibo_Events
 	/**
 	 * Get environment.
 	 *
-	 * @since 	1.5.0
-	 * @return 	string 	hml|prd
+	 * @since 1.5.0
+	 *
+	 * @return string
 	 */
-	private function get_env()
+	private function get_env() : string
 	{
 		return ( get_option( "home" ) === "https://marketplace.triibo.com.br" )
 				? "prd" : "hml";
@@ -225,13 +225,14 @@ class Triibo_Events
 	/**
 	 * Call event.
 	 *
-	 * @since 	1.3.2 	Added return value.
-	 * @since 	1.1.0
-	 * @return 	array
+	 * @since 1.3.2 	Added return value.
+	 * @since 1.1.0
+	 *
+	 * @return array
 	 */
-	private function call_event( $event, &$order, $triibo_id, $total )
+	private function call_event( $event, &$order, $triibo_id, $total ) : array
 	{
-		$response = $this->api->credit_points( $triibo_id, $total, $event );
+		$response = $this->api->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
 
 		/**
 		 * Added event field to log.
@@ -246,23 +247,27 @@ class Triibo_Events
 	/**
 	 * Return an instance of this class.
 	 *
-	 * @since 	1.0.0
-	 * @return 	object A single instance of this class.
+	 * @since 1.0.0
+	 *
+	 * @return self 	A single instance of this class.
 	 */
-	public static function get_instance()
+	public static function get_instance() : self
     {
 		// If the single instance hasn't been set, set it now.
-		if ( null === self::$instance ) self::$instance = new self;
+		if ( null === self::$instance )
+			self::$instance = new self;
+
 		return self::$instance;
 	}
 
 	/**
 	 * Triibo-Api-Service missing notice.
 	 *
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public static function triibo_api_services_missing_notice()
+	public static function triibo_api_services_missing_notice() : void
 	{
 		include_once dirname( __FILE__ ) . "/includes/admin/views/html-notice-missing-triibo_api_services.php";
 	}
@@ -270,11 +275,13 @@ class Triibo_Events
 	/**
 	 * Action links.
 	 *
-	 * @since 	1.0.0
-	 * @param 	array $links
-	 * @return 	array
+	 * @since 1.0.0
+	 *
+	 * @param array 	$links
+	 *
+	 * @return array
 	 */
-	public static function plugin_action_links( $links )
+	public static function plugin_action_links( $links ) : array
     {
         $url            = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
         $text           = __( "Configurações", self::DOMAIN );
@@ -287,8 +294,9 @@ class Triibo_Events
 	/**
 	 * Setup WooCommerce HPOS compatibility.
 	 *
-	 * @since 	1.7.0
-	 * @return 	void
+	 * @since 1.7.0
+	 *
+	 * @return void
 	 */
 	public function setup_hpos_compatibility() : void
 	{
@@ -308,13 +316,15 @@ class Triibo_Events
 	/**
 	 * Add link to changelog modal.
 	 *
-	 * @since 	1.4.0
-	 * @param 	array 	$plugin_meta
-	 * @param 	string 	$plugin_file
-	 * @param 	array 	$plugin_data
-	 * @return 	array
+	 * @since 1.4.0
+	 *
+	 * @param array 	$plugin_meta
+	 * @param string 	$plugin_file
+	 * @param array 	$plugin_data
+	 *
+	 * @return array
 	 */
-	public function plugin_row_meta( $plugin_meta, $plugin_file, $plugin_data )
+	public function plugin_row_meta( $plugin_meta, $plugin_file, $plugin_data ) : array
 	{
 		$path = path_join( WP_PLUGIN_DIR, $plugin_file );
 
@@ -340,10 +350,11 @@ class Triibo_Events
 	/**
 	 * adds 'Eventos' submenu to Triibo Services main menu.
 	 *
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public function add_submenu_page()
+	public function add_submenu_page() : void
 	{
 		add_submenu_page(
 			Triibo_Api_Services::get_name(),
@@ -358,10 +369,11 @@ class Triibo_Events
 	/**
 	 * Template for submenu.
 	 *
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public function display_admin_menu_settings()
+	public function display_admin_menu_settings() : void
 	{
 		include_once dirname( __FILE__ ) . "/templates/admin-page.php";
 	}
@@ -369,10 +381,11 @@ class Triibo_Events
 	/**
 	 * Link to plugin settings.
 	 *
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public function add_btn()
+	public function add_btn() : void
 	{
         $url  = esc_url( admin_url( "admin.php?page=" . self::DOMAIN . "-settings" ) );
 		$text = __( "Configurações", self::DOMAIN );
@@ -384,10 +397,11 @@ class Triibo_Events
 	/**
 	 * Add this plugin's dependency in the Triibo Api Services settings.
 	 *
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public function add_info_dependency()
+	public function add_info_dependency() : void
 	{
 		echo "<p> - Triibo Eventos</p>";
 	}
@@ -395,11 +409,12 @@ class Triibo_Events
 	/**
 	 * Valid if is a sub-order and sends event for Triibo.
 	 *
-	 * @since 	1.1.0 	Rebuilt method to work with different statuses.
-	 * @since 	1.0.0
-	 * @return 	void
+	 * @since 1.1.0 	Rebuilt method to work with different statuses
+	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
-	public function order_status_change( $order_id, $old_status, $new_status, $order )
+	public function order_status_change( $order_id, $old_status, $new_status, $order ) : void
 	{
 		$total          = $order->get_total();
 		$original_order = ( $order->get_parent_id() == 0 ) ? true : false;
@@ -429,7 +444,7 @@ class Triibo_Events
 						$product_id = $item->get_product_id();
 
 						// Triibo VIP.
-						if ( isset( self::PLANS[ $this->env ][ $product_id ] ) )
+						if ( isset( self::PLANS[ $this->get_env() ][ $product_id ] ) )
 						{
 							/**
 							 * Checking if the Assinatura_Triibo_Vip event has already been executed.
@@ -455,7 +470,7 @@ class Triibo_Events
 
 							if ( empty( $has_atv ) )
 							{
-								$event = self::PLANS[ $this->env ][ $product_id ];
+								$event = self::PLANS[ $this->get_env() ][ $product_id ];
 
 								/**
 								 * Receives response from the API, if successful, adds the metadata to not execute the event again.
@@ -483,7 +498,7 @@ class Triibo_Events
 							 * Triibo Vip, started to trigger the 'Seu_Clube' event.
 							 * @since 	1.10.0
 							 */
-							if ( !in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
+							if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 							{
 								$order->save();
 								break;
@@ -491,7 +506,7 @@ class Triibo_Events
 						}
 
 						// Seu Clube.
-						if ( in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
+						if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 						{
 							/**
 							 * Checking if the Seu_Clube event has already been executed.
@@ -505,7 +520,7 @@ class Triibo_Events
 								break;
 							}
 
-							$token      = $this->api_node->get_token( $user_id );
+							$token      = $this->api_node->get_token( user_id: $user_id );
 
 							if ( is_null( $token ) )
 							{
@@ -555,12 +570,14 @@ class Triibo_Events
 	/**
 	 * Process subscription cancellation/expiration.
 	 *
-	 * @since 	1.11.0 Renamed to `subscription_ended` from `subscription_status_cancelled`
-	 * @since 	1.8.0
-	 * @param 	object 	$subscription
-	 * @return 	void
+	 * @since 1.11.0 	Renamed to `subscription_ended` from `subscription_status_cancelled`
+	 * @since 1.8.0
+	 *
+	 * @param object 	$subscription
+	 *
+	 * @return void
 	 */
-	public function subscription_ended( $subscription )
+	public function subscription_ended( $subscription ) : void
 	{
 		$subscription_id = $subscription->get_id();
 		$user_id         = $subscription->get_user_id();
@@ -572,9 +589,9 @@ class Triibo_Events
 			$this->log( "info", "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
 
 			// Seu Clube.
-			if ( in_array( $product_id, self::SEU_CLUBE[ $this->env ] ) )
+			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
 			{
-				$token = $this->api_node->get_token( $user_id );
+				$token = $this->api_node->get_token( user_id: $user_id );
 
 				if ( is_null( $token ) )
 				{
@@ -594,10 +611,11 @@ class Triibo_Events
 	 * Triggered events when subscription renewal payment is confirmed.
 	 * Similar to order_status_change().
 	 *
-	 * @since 	1.2.0
-	 * @return 	void
+	 * @since 1.2.0
+	 *
+	 * @return void
 	 */
-	public function subscription_renewal( $subscription, $order )
+	public function subscription_renewal( $subscription, $order ) : void
 	{
 		$total          = $order->get_total();
 		$order_id       = $order->get_id();
@@ -619,7 +637,7 @@ class Triibo_Events
 				foreach ( $order->get_items() as $item_id => $item )
 				{
 					// Triibo VIP
-					if ( isset( self::PLANS[ $this->env ][ $item->get_product_id() ] ) )
+					if ( isset( self::PLANS[ $this->get_env() ][ $item->get_product_id() ] ) )
 					{
 						if ( empty( $has_cp ) )
 						{
@@ -639,7 +657,7 @@ class Triibo_Events
 
 						if ( empty( $has_atv ) )
 						{
-							$event    = self::PLANS[ $this->env ][ $item->get_product_id() ];
+							$event    = self::PLANS[ $this->get_env() ][ $item->get_product_id() ];
 
 							/**
 							 * Receives response from the API, if successful, adds the metadata to not execute the event again.
@@ -670,11 +688,12 @@ class Triibo_Events
 	/**
 	 * Call event Compra_Marketplace.
 	 *
-	 * @since 	1.3.2 	Added return value.
-	 * @since 	1.1.0
-	 * @return 	array
+	 * @since 1.3.2 	Added return value
+	 * @since 1.1.0
+	 *
+	 * @return array
 	 */
-	public function compra_marketplace( &$order, $triibo_id, $total )
+	public function compra_marketplace( &$order, $triibo_id, $total ) : array
 	{
 		$event = "Compra_Marketplace";
 
@@ -684,12 +703,13 @@ class Triibo_Events
 	/**
 	 * Call events: Assinatura_Triibo_Vip or Assinatura_Triibo_VIP_Plano_2 or Assinatura_Triibo_VIP_Plano_3.
 	 *
-	 * @since 	1.3.2 	Added return value.
-	 * @since 	1.3.0 	Added parameter $event.
-	 * @since 	1.1.0
-	 * @return 	array
+	 * @since 1.3.2 	Added return value
+	 * @since 1.3.0 	Added parameter $event
+	 * @since 1.1.0
+	 *
+	 * @return array
 	 */
-	public function assinatura_tribo_vip( &$order, $triibo_id, $total, $event )
+	public function assinatura_tribo_vip( &$order, $triibo_id, $total, $event ) : array
 	{
 		return $this->call_event( $event, $order, $triibo_id, $total );
 	}
@@ -697,10 +717,11 @@ class Triibo_Events
 	/**
 	 * Add note to order.
 	 *
-	 * @since 	1.0.4
-	 * @return 	void
+	 * @since 1.0.4
+	 *
+	 * @return void
 	 */
-	public function add_note( &$order, $triibo_id, $event, $response )
+	public function add_note( &$order, $triibo_id, $event, $response ) : void
 	{
 		$note = "Evento: {$event}";
 
@@ -728,17 +749,19 @@ class Triibo_Events
     /**
 	 * Register logs.
 	 *
-	 * @since 	1.10.1 	Fix log.
-	 * @since 	1.9.0 	Changing to the new woocommerce standard.
-	 * 					Added params $level and $error.
-	 * 					Renamed param $data to $message.
-	 * @since 	1.0.0
-	 * @param 	string 	$level
-	 * @param 	string 	$message
-	 * @param 	bool 	$is_error
-	 * @return 	void
+	 * @since 1.10.1 	Fix log
+	 * @since 1.9.0 	Changing to the new woocommerce standard
+	 * 					Added params $level and $error
+	 * 					Renamed param $data to $message
+	 * @since 1.0.0
+	 *
+	 * @param string 	$level
+	 * @param string 	$message
+	 * @param bool 		$is_error
+	 *
+	 * @return void
      */
-    public function log( string $level, string $message, bool $is_error = false )
+    public function log( string $level, string $message, bool $is_error = false ) : void
 	{
 		$logger  = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 
@@ -751,14 +774,15 @@ class Triibo_Events
 	/**
 	 * Update user orgs.
 	 *
-	 * @since 	1.5.2 	Added $order and $event parameters.
-	 * @since 	1.5.0
-	 * @return 	void
+	 * @since 1.5.2 	Added $order and $event parameters
+	 * @since 1.5.0
+	 *
+	 * @return void
 	 */
-	public function update_user_orgs( $user_id, &$order, $event )
+	public function update_user_orgs( $user_id, &$order, $event ) : void
 	{
 		$note     = "Evento: {$event}";
-		$org      = self::ORGS[ $this->env ];
+		$org      = self::ORGS[ $this->get_env() ];
 
 		$id_add   = $org[ "add" ][ "id"   ];
 		$name_add = $org[ "add" ][ "name" ];
@@ -772,7 +796,7 @@ class Triibo_Events
 		 * Add org to user.
 		 * Triibo VIP.
 		 */
-		$response = $this->api->add_org( $uid, $id_add );
+		$response = $this->api->add_org( uid: $uid, org_id: $id_add );
 
 		if ( !$response[ "success" ] )
 		{
@@ -792,7 +816,7 @@ class Triibo_Events
 		 * Remove org from user.
 		 * Triibo.
 		 */
-		$response = $this->api->del_org( $uid, $id_del );
+		$response = $this->api->del_org( uid: $uid, org_id: $id_del );
 
 		if ( !$response[ "success" ] )
 		{
@@ -815,10 +839,11 @@ class Triibo_Events
 	/**
 	 * Add user subscription Seu Clube.
 	 *
-	 * @since 	1.8.0
-	 * @return 	void
+	 * @since 1.8.0
+	 *
+	 * @return void
 	 */
-	public function add_user_subscription( $user_id, &$order, $product_id, $token )
+	public function add_user_subscription( $user_id, &$order, $product_id, $token ) : void
 	{
 		$note     = "Evento: Assinatura Seu Clube";
 
@@ -829,7 +854,7 @@ class Triibo_Events
 			"uid"       => $uid
 		];
 
-		$response = $this->api_node->add_subscription( $token, $params );
+		$response = $this->api_node->add_subscription( token: $token, params: $params );
 
 		if ( !$response[ "success" ] )
 		{
@@ -852,10 +877,11 @@ class Triibo_Events
 	/**
 	 * Delete user subscription Seu Clube.
 	 *
-	 * @since 	1.8.0
-	 * @return 	void
+	 * @since 1.8.0
+	 *
+	 * @return void
 	 */
-	public function del_user_subscription( $user_id, &$subscription, $product_id, $token )
+	public function del_user_subscription( $user_id, &$subscription, $product_id, $token ) : void
 	{
 		$note     = "Evento: Assinatura Seu Clube";
 
@@ -866,7 +892,7 @@ class Triibo_Events
 			"uid"       => $uid
 		];
 
-		$response = $this->api_node->del_subscription( $token, $params );
+		$response = $this->api_node->del_subscription( token: $token, params: $params );
 
 		if ( !$response[ "success" ] )
 		{
@@ -885,6 +911,41 @@ class Triibo_Events
 
 		$subscription->add_order_note( $note );
 	}
+
+	/**
+	 * Expose valid events via filter to other plugins.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array
+	 */
+	public static function get_valid_events() : array
+	{
+		$events = [];
+
+		foreach ( self::PLANS as $env )
+			foreach ( $env as $event )
+				$events[] = $event;
+
+		return array_unique( $events );
+	}
 }
 
-add_action( "plugins_loaded", array( "Triibo_Events", "get_instance" ), 222 );
+/**
+ * Load Triibo Events.
+ *
+ * @since 1.0.0
+ */
+add_action( "plugins_loaded", [ "Triibo_Events", "get_instance" ], 222 );
+
+/**
+ * Filter to get valid events.
+ *
+ * @since 1.12.0
+ *
+ * @return array
+ */
+add_filter( "triibo_events_valid_events", function( $events )
+{
+	return Triibo_Events::get_valid_events();
+} );
