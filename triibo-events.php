@@ -305,12 +305,18 @@ class Triibo_Events
 	/**
 	 * Call event.
 	 *
+	 * @since 1.13.0 	Added parameters types
 	 * @since 1.3.2 	Added return value.
 	 * @since 1.1.0
 	 *
+	 * @param object 	$order
+	 * @param string 	$event
+	 * @param string 	$triibo_id
+	 * @param float 	$total
+	 *
 	 * @return array
 	 */
-	private function call_event( $event, &$order, $triibo_id, $total ) : array
+	private function call_event( object &$order, string $event, string $triibo_id, float $total ) : array
 	{
 		$response = $this->api_gate->credit_points( triibo_id: $triibo_id, value: $total, event: $event );
 
@@ -318,8 +324,16 @@ class Triibo_Events
 		 * Added event field to log.
 		 * @since 	1.2.0
 		 */
-		$this->log( "info", print_r( [ "event" => $event, "triibo_id" => $triibo_id, "response" => $response ], true ) );
-		$this->add_note( $order, $triibo_id, $event, $response );
+		$this->log(
+			message: "Order: #{$order->get_id()} | {$triibo_id} | {$event}",
+			context: [
+				"event"     => $event,
+				"triibo_id" => $triibo_id,
+				"response"  => $response
+			]
+		);
+
+		$this->add_note( order: $order, triibo_id: $triibo_id, event: $event, response: $response );
 
 		return $response;
 	}
