@@ -296,6 +296,24 @@ class Triibo_Events
 	}
 
 	/**
+	 * Expose valid events via filter to other plugins.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array
+	 */
+	public static function get_valid_events() : array
+	{
+		$events = [];
+
+		foreach ( self::PLANS as $env )
+			foreach ( $env as $event )
+				$events[] = $event;
+
+		return array_unique( $events );
+	}
+
+	/**
 	 * Setup WooCommerce HPOS compatibility.
 	 *
 	 * @since 1.7.0
@@ -640,6 +658,8 @@ class Triibo_Events
 						"log_success"  => "Order: #%d | User: %d | %s, user has already been credited with '%s'",
 						"log_fail"     => "Order: #%d | User: %d | %s, failed to credit '%s'",
 						"log_type"     => "notice",
+						"orgs_update"  => [ $this, "update_user_orgs" ],
+						"orgs_args"    => [ $user_id, $order, $event ],
 					]
 				);
 
@@ -883,6 +903,9 @@ class Triibo_Events
 		}
 
 		$this->mark_event_executed( $user_id, $meta_key );
+
+		if ( isset( $orgs_update ) )
+			call_user_func_array( $orgs_update, $orgs_args );
 
 		if ( isset( $order ) && isset( $success_note ) )
 			$order->add_order_note( $success_note );
@@ -1374,24 +1397,6 @@ class Triibo_Events
 			context : $vars,
 			is_error: $is_error
 		);
-	}
-
-	/**
-	 * Expose valid events via filter to other plugins.
-	 *
-	 * @since 1.12.0
-	 *
-	 * @return array
-	 */
-	public static function get_valid_events() : array
-	{
-		$events = [];
-
-		foreach ( self::PLANS as $env )
-			foreach ( $env as $event )
-				$events[] = $event;
-
-		return array_unique( $events );
 	}
 }
 
