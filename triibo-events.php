@@ -6,7 +6,7 @@
  * Description: 			Dispara eventos para a Triibo dada certas condições. Dependências: Triibo API Services, WooCommerce e WooCommerce Subscription.
  * Author: 					Mateus Costa
  * Author URI: 				https://costamateus.com.br/
- * Version: 				1.13.0
+ * Version: 				2.0.0
  * Text Domain: 			triibo_events
  * Requires at least: 		6.4
  * Requires PHP: 			7.4
@@ -15,7 +15,7 @@
  *
  * @package Triibo_Events
  *
- * @version 1.13.0
+ * @version 2.0.0
  */
 defined( "ABSPATH" ) || exit;
 
@@ -30,7 +30,7 @@ class Triibo_Events
 	 *
 	 * @var string
 	 */
-	const VERSION = "1.13.0";
+	const VERSION = "2.0.0";
 
 	/**
 	 * Plugin domain.
@@ -172,7 +172,7 @@ class Triibo_Events
 	/**
 	 * Construct.
 	 *
-	 * @since 1.13.0 	Refactored
+	 * @since 2.0.0 	Refactored
 	 * @since 1.8.0 	Added Triibo_Api_Node
 	 * @since 1.7.0 	Added HPOS compatibility declaration
 	 * @since 1.5.0 	Added var $env
@@ -251,7 +251,7 @@ class Triibo_Events
 	/**
 	 * Add actions or filters.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param string 	$type
 	 * @param array 	$hooks
@@ -305,7 +305,7 @@ class Triibo_Events
 	/**
 	 * Call event.
 	 *
-	 * @since 1.13.0 	Added parameters types
+	 * @since 2.0.0 	Refactored
 	 * @since 1.3.2 	Added return value.
 	 * @since 1.1.0
 	 *
@@ -503,7 +503,7 @@ class Triibo_Events
 	/**
 	 * Check if the order is an original order.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object 	$order
 	 *
@@ -517,7 +517,7 @@ class Triibo_Events
 	/**
 	 * Get user phone number.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param int 	$user_id
 	 *
@@ -536,7 +536,7 @@ class Triibo_Events
 	/**
 	 * Check if the order is a processing subscription.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param int 		$order_id
 	 * @param string 	$new_status
@@ -551,7 +551,7 @@ class Triibo_Events
 	/**
 	 * Check if the order is a completed purchase.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param int 		$order_id
 	 * @param string 	$new_status
@@ -566,7 +566,7 @@ class Triibo_Events
 	/**
 	 * Check if the user has already executed the event.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param int 		$user_id
 	 * @param string 	$meta_key
@@ -581,7 +581,7 @@ class Triibo_Events
 	/**
 	 * Mark the event as executed.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param int 		$user_id
 	 * @param string 	$meta_key
@@ -596,7 +596,7 @@ class Triibo_Events
 	/**
 	 * Process VIP event.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object 	$order
 	 * @param int 		$user_id
@@ -674,7 +674,7 @@ class Triibo_Events
 	/**
 	 * Process Seu Clube event.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object 	$order
 	 * @param int 		$user_id
@@ -735,7 +735,7 @@ class Triibo_Events
 	/**
 	 * Process normal purchase events.
 	 *
-	 * #since 1.13.0
+	 * #since 2.0.0
 	 *
 	 * @param object 	$order
 	 * @param int 		$user_id
@@ -772,7 +772,7 @@ class Triibo_Events
 	/**
 	 * Get organization IDs and names.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object 	$order
 	 * @param int 		$product_id
@@ -833,7 +833,7 @@ class Triibo_Events
 	/**
 	 * Get organization IDs and names.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @return array
 	 */
@@ -845,7 +845,7 @@ class Triibo_Events
 	/**
 	 * Add or remove organization from user.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object    $order
 	 * @param string    $note
@@ -921,7 +921,7 @@ class Triibo_Events
 	 * Generalized event processing helper.
 	 * Check meta, call API, mark as executed, log result.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param array $args
 	 *   - meta_key:     string
@@ -992,7 +992,7 @@ class Triibo_Events
 	/**
 	 * Valid if is a sub-order and sends event for Triibo.
 	 *
-	 * @since 1.13.0 	Refactored
+	 * @since 2.0.0 	Refactored
 	 * @since 1.1.0 	Rebuilt method to work with different statuses
 	 * @since 1.0.0
 	 *
@@ -1108,7 +1108,7 @@ class Triibo_Events
 	/**
 	 * Handle subscription renewal event.
 	 *
-	 * @since 1.13.0 	Refactored
+	 * @since 2.0.0 	Refactored
 	 * @since 1.2.0
 	 *
 	 * @param object 	$subscription
@@ -1198,7 +1198,7 @@ class Triibo_Events
 	/**
 	 * Update user organizations (add VIP, remove normal org).
 	 *
-	 * @since 1.13.0 	Refactored
+	 * @since 2.0.0 	Refactored
 	 * @since 1.5.2 	Added $order and $event parameters
 	 * @since 1.5.0
 	 *
@@ -1246,7 +1246,7 @@ class Triibo_Events
 	/**
 	 * Add or delete user subscription Seu Clube.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param object   &$order
 	 * @param string   $action 'add' or 'delete'
@@ -1346,7 +1346,7 @@ class Triibo_Events
 	/**
 	 * Register logs.
 	 *
-	 * @since 1.13.0 	Added parameter $context
+	 * @since 2.0.0 	Refactored
 	 * @since 1.10.1 	Fix log
 	 * @since 1.9.0 	Changing to the new woocommerce standard
 	 * 					Added params $level and $error
@@ -1375,7 +1375,7 @@ class Triibo_Events
 	/**
 	 * Wrapper for user event logging.
 	 *
-	 * @since 1.13.0
+	 * @since 2.0.0
 	 *
 	 * @param string 	$template
 	 * @param array 	$vars
