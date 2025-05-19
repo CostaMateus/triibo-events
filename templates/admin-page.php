@@ -3,10 +3,10 @@
  * Provide a admin area view for the plugin
  * This file is used to markup the admin-facing aspects of the plugin.
  *
- * @since      1.2.0
- * @package    Triibo_Events
- * @subpackage Triibo_Events/Templates
- * @author     Mateus Costa <mateus@costamateus.com.br>
+ * @author Mateus Costa <mateus@costamateus.com.br>
+ *
+ * @since 1.0.0
+ * @version 1.2.0
  */
  ?>
 

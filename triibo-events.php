@@ -18,7 +18,7 @@
  *
  * @version 2.0.0
  */
-defined( "ABSPATH" ) || exit;
+defined( constant_name: "ABSPATH" ) || exit;
 
 /**
  * @since 2.0.0
@@ -51,7 +51,13 @@ add_action( hook_name: "plugins_loaded", callback: [ "Triibo_Events", "get_insta
  *
  * @return array
  */
-add_filter( hook_name: "triibo_events_valid_events", callback: function( $events ) { return Triibo_Events::get_valid_events(); } );
+add_filter(
+	hook_name: "triibo_events_valid_events",
+	callback : function( $events ) : array
+	{
+		return Triibo_Events::get_valid_events();
+	}
+);
 
 class Triibo_Events
 {
@@ -247,7 +253,7 @@ class Triibo_Events
 		$this->add_hooks( type: "filter", hooks: $filters );
 		$this->add_hooks( type: "action", hooks: $actions );
 
-		$this->log      = ( function_exists( "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
+		$this->log      = ( function_exists( function: "wc_get_logger" ) ) ? wc_get_logger() : new WC_Logger();
 		$this->api_gate = new Triibo_Api_Gateway();
 
 		/**
@@ -296,7 +302,7 @@ class Triibo_Events
 	public static function plugin_action_links( array $links ) : array
     {
         $url            = esc_url( url: admin_url( path: "admin.php?page=" . self::DOMAIN . "-settings" ) );
-        $text           = __( "Configurações", self::DOMAIN );
+        $text           = __( text: "Configurações", domain: self::DOMAIN );
 		$plugin_links   = [];
 		$plugin_links[] = "<a href='{$url}' >{$text}</a>";
 
@@ -318,7 +324,7 @@ class Triibo_Events
 			foreach ( $env as $event )
 				$events[] = $event;
 
-		return array_unique( $events );
+		return array_unique( array: $events );
 	}
 
 	/**
@@ -330,10 +336,10 @@ class Triibo_Events
 	 */
 	public function setup_hpos_compatibility() : void
 	{
-		if ( defined( "WC_VERSION" ) && version_compare( WC_VERSION, "7.1", "<" ) )
+		if ( defined( constant_name: "WC_VERSION" ) && version_compare( version1: WC_VERSION, version2: "7.1", operator: "<" ) )
 			return;
 
-		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) )
+		if ( class_exists( class: \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) )
 		{
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
 				feature_id            : "custom_order_tables",
@@ -359,7 +365,7 @@ class Triibo_Events
 		$path = path_join( base: WP_PLUGIN_DIR, path: $plugin_file );
 
 		if ( DIRECTORY_SEPARATOR == "\\" )
-			$path = str_replace( "/", "\\", $path );
+			$path = str_replace( search: "/", replace: "\\", subject: $path );
 
         if ( __FILE__ === $path )
 		{
@@ -368,7 +374,7 @@ class Triibo_Events
             $plugin_meta[] = sprintf(
                 "<a href='%s' class='thickbox open-plugin-details-modal' aria-label='%s' data-title='%s'>%s</a>",
                 add_query_arg( "TB_iframe", "true", $url ),
-                esc_attr( text: sprintf( __( "More information about %s" ), $plugin_data[ "Name" ] ) ),
+                esc_attr( text: sprintf( format: __( text: "More information about %s" ), values: $plugin_data[ "Name" ] ) ),
                 esc_attr( text: $plugin_data[ "Name" ] ),
                 __( text: "Histórico de alterações" )
             );
@@ -418,7 +424,7 @@ class Triibo_Events
 	public function add_btn() : void
 	{
         $url  = esc_url( url: admin_url( path: "admin.php?page=" . self::DOMAIN . "-settings" ) );
-		$text = __( "Configurações", self::DOMAIN );
+		$text = __( text: "Configurações", domain: self::DOMAIN );
 		$link = "<a href='{$url}' >{$text}</a>";
 
 		echo "<p>Triibo Eventos | {$link}</p>";
@@ -452,7 +458,7 @@ class Triibo_Events
 	 */
 	public function order_status_change( int $order_id, string $old_status, string $new_status, object $order ) : void
 	{
-		if ( ! $this->is_original_order( $order ) )
+		if ( ! $this->is_original_order( order: $order ) )
 			return;
 
 		$user_id   = $order->get_user_id();
@@ -460,7 +466,16 @@ class Triibo_Events
 
 		if ( empty( $triibo_id ) )
 		{
-			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
+			$this->log(
+				is_error: true,
+				level   : "error",
+				message : "User without Triibo account",
+				context : [
+					"order_id" => $order_id,
+					"user_id"  => $user_id
+				]
+			);
+
 			return;
 		}
 
@@ -522,11 +537,11 @@ class Triibo_Events
 			$this->log( message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
 
 			// Seu Clube.
-			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+			if ( in_array( needle: $product_id, haystack: self::SEU_CLUBE[ $this->get_env() ] ) )
 			{
 				$token = $this->api_node->get_token( user_id: $user_id );
 
-				if ( is_null( $token ) )
+				if ( is_null( value: $token ) )
 				{
 					$this->log(
 						level   : "error",
@@ -576,7 +591,16 @@ class Triibo_Events
 
 		if ( empty( $triibo_id ) )
 		{
-			$this->log_user_without_account( order_id: $order_id, user_id: $user_id );
+			$this->log(
+				is_error: true,
+				level   : "error",
+				message : "User without Triibo account",
+				context : [
+					"order_id" => $order_id,
+					"user_id"  => $user_id
+				]
+			);
+
 			return;
 		}
 
@@ -676,7 +700,7 @@ class Triibo_Events
 				 * Triibo Vip, started to trigger the 'Seu_Clube' event
 				 * @since 1.10.0
 				 */
-				if ( !in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+				if ( ! in_array( needle: $product_id, haystack: self::SEU_CLUBE[ $this->get_env() ] ) )
 				{
 					$order->save();
 					break;
@@ -703,16 +727,16 @@ class Triibo_Events
 		{
 			$product_id = $item->get_product_id();
 
-			if ( in_array( $product_id, self::SEU_CLUBE[ $this->get_env() ] ) )
+			if ( in_array( needle: $product_id, haystack: self::SEU_CLUBE[ $this->get_env() ] ) )
 			{
 				$this->process_event(
 					args: [
 						"meta_key"     => "has_seu_clube_{$order_id}",
-						"api_callback" => function() use ( $user_id, $order, $product_id )
+						"api_callback" => function() use ( $user_id, $order, $product_id ) : array
 						{
 							$token = $this->api_node->get_token( user_id: $user_id );
 
-							if ( is_null( $token ) )
+							if ( is_null( value: $token ) )
 								return [ "success" => false ];
 
 							$this->toggle_user_subscription(
@@ -838,8 +862,8 @@ class Triibo_Events
 			"log_type"     => "notice",
 		];
 
-		$this->process_event( $event_cp  );
-		$this->process_event( $event_atv );
+		$this->process_event( args: $event_cp  );
+		$this->process_event( args: $event_atv );
 
 		$order->save();
 	}
@@ -870,9 +894,9 @@ class Triibo_Events
 	 */
 	private function process_event( array $args ) : void
 	{
-		extract( $args );
+		extract( array: $args );
 
-		if ( $this->has_already_executed_event( $user_id, $meta_key ) )
+		if ( $this->has_already_executed_event( user_id: $user_id, meta_key: $meta_key ) )
 		{
 			$this->log_user_event(
 				template: $log_success,
@@ -888,7 +912,7 @@ class Triibo_Events
 			return;
 		}
 
-		$response = call_user_func_array( $api_callback, $api_args );
+		$response = call_user_func_array( callback: $api_callback, args: $api_args );
 
 		if ( ! isset( $response[ "success" ] ) || ! $response[ "success" ] )
 		{
@@ -910,10 +934,10 @@ class Triibo_Events
 			return;
 		}
 
-		$this->mark_event_executed( $user_id, $meta_key );
+		$this->mark_event_executed( user_id: $user_id, meta_key: $meta_key );
 
 		if ( isset( $orgs_update ) )
-			call_user_func_array( $orgs_update, $orgs_args );
+			call_user_func_array( callback: $orgs_update, args: $orgs_args );
 
 		if ( isset( $order ) && isset( $success_note ) )
 			$order->add_order_note( $success_note );
@@ -931,7 +955,7 @@ class Triibo_Events
 	 */
 	private function add_hooks( string $type, array $hooks ) : void
 	{
-		if ( ! in_array( $type, [ "action", "filter" ] ) )
+		if ( ! in_array( needle: $type, haystack: [ "action", "filter" ] ) )
 			return;
 
 		foreach ( $hooks as $hook => $data )
@@ -1039,7 +1063,7 @@ class Triibo_Events
 		if ( empty( $triibo_phone ) )
 			$triibo_phone = get_user_meta( user_id: $user_id, key: "triiboId_phone", single: true );
 
-		return preg_replace( "/\D/", "", $triibo_phone );
+		return preg_replace( pattern: "/\D/", replacement: "", subject: $triibo_phone );
 	}
 
 	/**
@@ -1069,7 +1093,7 @@ class Triibo_Events
 	 */
 	private function is_completed_purchase( int $order_id, string $new_status ) : bool
 	{
-		return $new_status === "completed" && !wcs_order_contains_subscription( order: $order_id );
+		return $new_status === "completed" && ! wcs_order_contains_subscription( order: $order_id );
 	}
 
 	/**
@@ -1130,7 +1154,7 @@ class Triibo_Events
 	 */
 	private function toggle_org_on_user( object &$order, string &$note, string $action, string $uid, string $org_id, string $org_name ) : bool
 	{
-		if ( ! in_array( $action, [ "add", "remove" ] ) )
+		if ( ! in_array( needle: $action, haystack: [ "add", "remove" ] ) )
 		{
 			$this->log(
 				is_error: true,
@@ -1170,7 +1194,7 @@ class Triibo_Events
 		$this->log(
 			is_error: true,
 			level   : "error",
-			message : trim( $failure_message),
+			message : trim( string: $failure_message ),
 			context : [
 				"order_id" => $order->get_id(),
 				"uid"      => $uid,
@@ -1252,7 +1276,7 @@ class Triibo_Events
 	 */
 	private function toggle_user_subscription( object &$order, string $action, int $user_id, int $product_id, string $token ) : void
 	{
-		if ( ! in_array( $action, [ "add", "delete" ] ) )
+		if ( ! in_array( needle: $action, haystack: [ "add", "delete" ] ) )
 		{
 			$this->log(
 				is_error: true,
@@ -1303,7 +1327,7 @@ class Triibo_Events
 		$this->log(
 			is_error: true,
 			level   : "error",
-			message : trim( $failure_message ),
+			message : trim( string: $failure_message ),
 			context : [
 				"order_id"  => $order->get_id(),
 				"action"    => $action,
@@ -1340,7 +1364,7 @@ class Triibo_Events
 			$movement_id  = $response[ "data" ][ "movementID" ];
 			$note        .= "\nCréditos/cupons adicionados a conta Triibo\nConta: {$triibo_id}\nMovimentação ID: {$movement_id}";
 		}
-		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && !$response[ "data" ][ "success" ] )
+		elseif ( $response[ "success" ] && isset( $response[ "data" ] ) && ! $response[ "data" ][ "success" ] )
 		{
 			$note        .= "\nFalha ao adicionar créditos/cupons a conta Triibo\nConta: {$triibo_id}\nErro: API";
 		}
@@ -1401,7 +1425,7 @@ class Triibo_Events
 	{
 		$this->log(
 			level   : $level,
-			message : vsprintf( $template, $vars ),
+			message : vsprintf( format: $template, values: $vars ),
 			context : $vars,
 			is_error: $is_error
 		);
