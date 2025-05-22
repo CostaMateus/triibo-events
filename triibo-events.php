@@ -534,7 +534,10 @@ class Triibo_Events
 		{
 			$product_id = $item->get_product_id();
 
-			$this->log( message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}" );
+			$this->log(
+				level  : "info",
+				message: "Canceling subscription #{$subscription_id}, user_id #{$user_id}"
+			);
 
 			// Seu Clube.
 			if ( in_array( needle: $product_id, haystack: self::SEU_CLUBE[ $this->get_env() ] ) )
@@ -544,9 +547,10 @@ class Triibo_Events
 				if ( is_null( value: $token ) )
 				{
 					$this->log(
+						is_error: true,
 						level   : "error",
 						message : "Subscription: #{$subscription_id} | {$user_id}, unable to generate Node API token",
-						is_error: true
+						context : [ "product_id" => $product_id, ]
 					);
 					break;
 				}
@@ -1020,6 +1024,7 @@ class Triibo_Events
 		 * @since 	1.2.0
 		 */
 		$this->log(
+			level  : "info",
 			message: "Order: #{$order->get_id()} | {$triibo_id} | {$event}",
 			context: [
 				"event"     => $event,
