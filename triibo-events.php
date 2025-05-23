@@ -77,7 +77,7 @@ class Triibo_Events
 	 *
 	 * @var string
 	 */
-	const DOMAIN = "triibo_events";
+	const DOMAIN = "triibo-events";
 
 	/**
 	 * Subscription Triibo VIP.
@@ -90,18 +90,14 @@ class Triibo_Events
 	 */
 	const PLANS = [
 		"hml" => [
-			816851 => "Assinatura_Triibo_Vip",
-			816853 => "Assinatura_Triibo_Vip_Plano_2",
-			816854 => "Assinatura_Triibo_Vip_Plano_3"
+			// product_id => event_atv
+			111111 => "Assinatura_111111", // hardcode - example
+			222222 => "Assinatura_222222", // hardcode - example
 		],
 		"prd" => [
 			// product_id => event_atv
-			939930 => "Assinatura_Triibo_Vip",
-			957852 => "Assinatura_Triibo_Vip_Plano_2",
-			957855 => "Assinatura_Triibo_Vip_Plano_3",
-			981120 => "Assinatura_Triibo_Vip_Plano_4", // trigger 'SEU_CLUBE'
-			981121 => "Assinatura_Triibo_Vip_Plano_5",
-			981122 => "Assinatura_Triibo_Vip_Plano_6",
+			333333 => "Assinatura_333333", // hardcode - example
+			444444 => "Assinatura_444444", // hardcode - example
 		]
 	];
 
@@ -117,25 +113,25 @@ class Triibo_Events
 		"hml" => [
 			"add" => [
 				// vip
-				"id"   => "-Ngta5dXbnSxCJravalh",
-				"name" => "Triibo V.I.P",
+				"id"   => "organization_id",   // hardcode - example
+				"name" => "organization_name", // hardcode - example
 			],
 			"del" => [
 				// normal
-				"id"   => "mlmtgPFBctdnJeJ9Bz4i",
-				"name" => "Triibo",
+				"id"   => "organization_id",   // hardcode - example
+				"name" => "organization_name", // hardcode - example
 			]
 		],
 		"prd" => [
 			"add" => [
 				// vip
-				"id"   => "-NVUhxocgIAf_vgFmYvx",
-				"name" => "Triibo V.I.P",
+				"id"   => "organization_id",   // hardcode - example
+				"name" => "organization_name", // hardcode - example
 			],
 			"del" => [
 				// normal
-				"id"   => "triibo",
-				"name" => "Triibo",
+				"id"   => "organization_id",   // hardcode - example
+				"name" => "organization_name", // hardcode - example
 			]
 		]
 	];
@@ -148,26 +144,12 @@ class Triibo_Events
 	 */
 	const SEU_CLUBE = [
 		"hml" => [
-			114308, // assinatura teste
+			111111, // Assinatura_111111
+			222222, // Assinatura_222222
 		],
 		"prd" => [
-			// Assinatura_Triibo_Vip_Plano_4
-			981120,
-
-			// Club do Golfista
-			986463,
-
-			// Morro Experience
-			986464,
-
-			// Projeto Pedalar
-			987475,
-
-			// Conexão Feminina - mensal
-			1022143,
-
-			// Conexão Feminina - anual
-			// 1022146,
+			333333, // Assinatura_333333
+			444444, // Assinatura_444444
 		],
 	];
 
