@@ -82,6 +82,8 @@ class Triibo_Events
 	/**
 	 * Subscription Triibo VIP.
 	 *
+	 * TODO - add admin panel
+	 *
 	 * @since 1.6.0 	Added new plans
 	 * @since 1.5.0 	Added env
 	 * @since 1.3.0
@@ -103,6 +105,8 @@ class Triibo_Events
 
 	/**
 	 * Orgs according to the env.
+	 *
+	 * TODO - add admin panel
 	 *
 	 * @since 1.5.2 	Added 'id' and 'name' indexes
 	 * @since 1.5.0
@@ -137,7 +141,11 @@ class Triibo_Events
 	];
 
 	/**
-	 * @since 1.10.0 	Added product 981120
+	 * Triibo Seu Clube.
+	 *
+	 * TODO - add admin panel
+	 *
+	 * @since 1.10.0 	Added product
 	 * @since 1.8.0
 	 *
 	 * @var array
